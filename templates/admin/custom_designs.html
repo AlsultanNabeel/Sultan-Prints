@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}التصاميم المخصصة - لوحة التحكم{% endblock %}
+
+{% block content %}
+<section class="admin-custom-designs py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="fw-bold">التصاميم المخصصة</h1>
+        </div>
+        
+        <div class="row">
+            <!-- Admin Sidebar -->
+            <div class="col-lg-3 mb-4">
+                {% include 'admin/_sidebar.html' %}
+            </div>
+            
+            <!-- Admin Content -->
+            <div class="col-lg-9">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">طلبات تصميم جديدة</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if new_designs %}
+                        <div class="row g-3">
+                            {% for design in new_designs %}
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <div class="card h-100">
+                                    {% set file_url = url_for('static', filename=design.url_path) %}
+                                    <a href="{{ file_url }}" data-lightbox="new-designs" data-title="{{ design.metadata.get('original_filename', design.image_file) }}">
+                                        <img src="{{ file_url }}" class="card-img-top" alt="{{ design.image_file }}" style="object-fit: cover; height: 200px;">
+                                    </a>
+                                    <div class="card-body">
+                                        <h6 class="card-title">التفاصيل</h6>
+                                        <ul class="list-unstyled mb-0 small">
+                                            <li><strong>المقاس:</strong> {{ design.metadata.get('size', 'غير محدد') }}</li>
+                                            <li><strong>اللون:</strong> {{ design.metadata.get('color', 'غير محدد') }}</li>
+                                            {% if design.metadata.get('details') %}
+                                            <li><strong>ملاحظات:</strong> {{ design.metadata.get('details') }}</li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                    <div class="card-footer d-flex justify-content-between align-items-center">
+                                        <small class="text-muted" dir="ltr" title="{{ design.metadata.get('original_filename', design.image_file) }}">{{ design.image_file[:15] }}...</small>
+                                        <form action="{{ url_for('admin.mark_design_printed', filename=design.image_file) }}" method="POST" onsubmit="return confirm('هل أنت متأكد من نقل هذا التصميم للأرشيف؟');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-success" title="تمت الطباعة والنقل للأرشيف">
+                                                <i class="fas fa-check"></i> نقل
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                            <h5>لا توجد طلبات تصميم جديدة.</h5>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Printed Designs Section -->
+                <div class="accordion mt-4" id="printedDesignsAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingPrinted">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePrinted" aria-expanded="false" aria-controls="collapsePrinted">
+                                الأرشيف (التصاميم المطبوعة)
+                                <span class="badge bg-secondary ms-2">{{ printed_designs|length }}</span>
+                            </button>
+                        </h2>
+                        <div id="collapsePrinted" class="accordion-collapse collapse" aria-labelledby="headingPrinted" data-bs-parent="#printedDesignsAccordion">
+                            <div class="accordion-body bg-light">
+                                {% if printed_designs %}
+                                <div class="row g-3">
+                                    {% for design in printed_designs %}
+                                    <div class="col-12 col-md-6 col-lg-4">
+                                        <div class="card h-100">
+                                            {% set file_url = url_for('static', filename=design.url_path) %}
+                                            <a href="{{ file_url }}" data-lightbox="printed-designs" data-title="{{ design.metadata.get('original_filename', design.image_file) }}">
+                                                <img src="{{ file_url }}" class="card-img-top" alt="{{ design.image_file }}" style="object-fit: cover; height: 200px;">
+                                            </a>
+                                            <div class="card-body">
+                                                <h6 class="card-title">التفاصيل</h6>
+                                                <ul class="list-unstyled mb-0 small">
+                                                    <li><strong>المقاس:</strong> {{ design.metadata.get('size', 'غير محدد') }}</li>
+                                                    <li><strong>اللون:</strong> {{ design.metadata.get('color', 'غير محدد') }}</li>
+                                                    {% if design.metadata.get('details') %}
+                                                    <li><strong>ملاحظات:</strong> {{ design.metadata.get('details') }}</li>
+                                                    {% endif %}
+                                                </ul>
+                                            </div>
+                                            <div class="card-footer text-center">
+                                                <small class="text-muted" dir="ltr" title="{{ design.metadata.get('original_filename', design.image_file) }}">{{ design.image_file[:15] }}...</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <p class="text-muted text-center m-0 py-4">لا توجد تصاميم في الأرشيف.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css">
+<style>
+    .card-footer {
+        background-color: #f8f9fa;
+        font-size: 0.8em;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js"></script>
+<script>
+    lightbox.option({
+      'resizeDuration': 200,
+      'wrapAround': true
+    })
+</script>
+{% endblock %} 

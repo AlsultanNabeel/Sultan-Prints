@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}404 - الصفحة غير موجودة{% endblock %}
+
+{% block content %}
+<section class="error-page py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <img src="{{ url_for('static', filename='images/404.svg') }}" alt="404" class="img-fluid mb-4" style="max-width: 400px;">
+                <h1 class="display-4 mb-4">عذراً، الصفحة غير موجودة!</h1>
+                <p class="lead mb-4">يبدو أن الصفحة التي تبحث عنها غير موجودة أو تم نقلها.</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{{ url_for('main.index') }}" class="btn btn-primary">العودة للرئيسية</a>
+                    <a href="{{ url_for('main.products') }}" class="btn btn-outline-primary">تصفح المنتجات</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

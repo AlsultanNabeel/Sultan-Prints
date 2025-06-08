@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block title %}إتمام الطلب - متجرنا{% endblock %}
+
+{% block content %}
+<style>
+    .payment-option {
+        border: 1px solid #dee2e6;
+        border-radius: .375rem;
+        padding: 1rem;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+    }
+    .payment-option:hover, .payment-option.selected {
+        border-color: var(--bs-primary);
+        box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), .25);
+    }
+    .payment-option.selected {
+        background-color: #f8f9fa;
+    }
+    .payment-option .form-check-input {
+        display: none;
+    }
+    .payment-details {
+        display: none;
+        padding-top: 1rem;
+        margin-top: 1rem;
+        border-top: 1px solid #dee2e6;
+    }
+    .apple-pay-button {
+        display: inline-block;
+        background-color: #000;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        width: 100%;
+    }
+    .apple-pay-button .fab {
+        margin-right: 8px;
+    }
+</style>
+
+<section class="checkout-page py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h1 class="fw-bold">إتمام الطلب</h1>
+            <p class="text-muted">أنت على بعد خطوة واحدة من الحصول على منتجاتك الرائعة.</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('cart.checkout') }}" enctype="multipart/form-data" id="checkout-form">
+            {{ form.csrf_token }}
+            <div class="row g-5">
+                <!-- Shipping & Payment Column -->
+                <div class="col-lg-7">
+                    <!-- Shipping Info -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white py-3">
+                            <h4 class="mb-0"><i class="fas fa-truck me-2"></i>معلومات الشحن</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label for="name" class="form-label">الاسم الكامل</label>
+                                    {{ form.name(class="form-control form-control-lg", id="name", placeholder="أدخل الاسم الكامل", required=true) }}
+                                </div>
+                                <div class="col-12">
+                                    <label for="phone" class="form-label">رقم الهاتف</label>
+                                    {{ form.phone(class="form-control form-control-lg", id="phone", placeholder="01XXXXXXXXX", required=true) }}
+                                </div>
+                                <div class="col-12">
+                                    <label for="address" class="form-label">العنوان بالتفصيل</label>
+                                    {{ form.address(class="form-control form-control-lg", id="address", rows="3", placeholder="المحافظة، المدينة، الشارع، رقم المبنى...", required=true) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Methods -->
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white py-3">
+                            <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i>اختر طريقة الدفع</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-3">
+                                <!-- Apple Pay Option -->
+                                <button type="button" class="apple-pay-button" id="apple-pay-btn" disabled>
+                                    <i class="fab fa-apple"></i> Apple Pay
+                                </button>
+                                <small class="text-muted text-center">Apple Pay (قيد التطوير)</small>
+
+                                <!-- Cash on Delivery -->
+                                <label for="payment-cod" class="payment-option" id="cod-option">
+                                    {{ form.payment_method(class="form-check-input", type="radio", id="payment-cod", value="cod", checked=true) }}
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-money-bill-wave fa-2x me-3 text-success"></i>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">الدفع عند الاستلام</h6>
+                                            <p class="text-muted mb-0 small">الدفع نقدًا لمندوب الشحن عند استلام طلبك.</p>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <!-- Vodafone Cash -->
+                                <label for="payment-vodafone" class="payment-option" id="vodafone-option">
+                                    {{ form.payment_method(class="form-check-input", type="radio", id="payment-vodafone", value="vodafone_cash") }}
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-wallet fa-2x me-3 text-danger"></i>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">فودافون كاش</h6>
+                                            <p class="text-muted mb-0 small">تحويل المبلغ إلى محفظتنا ورفع صورة الإيصال.</p>
+                                        </div>
+                                    </div>
+                                    <div class="payment-details" id="vodafone-details">
+                                        <p>يرجى تحويل المبلغ الإجمالي إلى الرقم: <strong class="text-danger">{{ vodafone_number or 'غير محدد' }}</strong></p>
+                                        <label for="vodafone_receipt" class="form-label">ارفع صورة إيصال الدفع</label>
+                                        {{ form.vodafone_receipt(class="form-control", id="vodafone_receipt", accept="image/*") }}
+                                        <div class="form-text">هذه الخطوة تؤكد عملية الدفع وتسرع من توصيل الطلب.</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Summary Column -->
+                <div class="col-lg-5">
+                    <div class="card shadow-sm sticky-top" style="top: 2rem;">
+                        <div class="card-header bg-white py-3">
+                            <h4 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>ملخص الطلب</h4>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                {% for item in cart_items %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <div>
+                                        <h6 class="my-0">{{ item.product.name }}</h6>
+                                        <small class="text-muted">الكمية: {{ item.quantity }} | اللون: {{ item.color }} | الحجم: {{ item.size }}</small>
+                                    </div>
+                                    <span class="text-muted">{{ "{:,.2f}".format(item.subtotal) }} جنيه</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            
+                            <ul class="list-group list-group-flush mt-3">
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <span>إجمالي المنتجات</span>
+                                    <strong>{{ "{:,.2f}".format(products_total) }} جنيه</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <span>تكلفة الشحن</span>
+                                    <strong>{{ "{:,.2f}".format(shipping_cost) if shipping_cost > 0 else 'مجاني' }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 fs-5">
+                                    <span>الإجمالي النهائي</span>
+                                    <strong class="text-primary">{{ "{:,.2f}".format(final_total) }} جنيه</strong>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-footer bg-white p-3">
+                             {{ form.submit(class="btn btn-primary btn-lg w-100", value="تأكيد الطلب الآن") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentOptions = document.querySelectorAll('.payment-option');
+    
+    function updateSelection(selectedOption) {
+        paymentOptions.forEach(option => {
+            const details = option.querySelector('.payment-details');
+            if (option === selectedOption) {
+                option.classList.add('selected');
+                if (details) {
+                    details.style.display = 'block';
+                }
+            } else {
+                option.classList.remove('selected');
+                if (details) {
+                    details.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    paymentOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            this.querySelector('input[type="radio"]').checked = true;
+            updateSelection(this);
+        });
+    });
+
+    // Set initial state based on checked radio
+    const initiallyChecked = document.querySelector('input[type="radio"]:checked');
+    if (initiallyChecked) {
+        updateSelection(initiallyChecked.closest('.payment-option'));
+    }
+});
+</script>
+{% endblock %}

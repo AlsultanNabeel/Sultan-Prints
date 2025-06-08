@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}إعدادات الموقع - لوحة التحكم{% endblock %}
+
+{% block content %}
+<section class="admin-settings py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Admin Sidebar -->
+            <div class="col-lg-3 mb-4">
+                {% include 'admin/_sidebar.html' %}
+            </div>
+            
+            <!-- Admin Content -->
+            <div class="col-lg-9">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h1 class="fw-bold h4 mb-0">إعدادات الموقع العامة</h1>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">قم بتعديل الإعدادات العامة للموقع مثل معلومات التواصل وروابط الشبكات الاجتماعية.</p>
+                        <form method="POST" action="{{ url_for('admin._settings') }}" enctype="multipart/form-data">
+                            {{ form.hidden_tag() }}
+                            
+                            <h5 class="mt-4 mb-3">قسم الهيرو (أعلى الصفحة الرئيسية)</h5>
+                            <div class="mb-3">
+                                {{ form.hero_title.label(class="form-label") }}
+                                {{ form.hero_title(class="form-control") }}
+                                <div class="form-text">{{ form.hero_title.description }}</div>
+                            </div>
+                             <div class="mb-3">
+                                {{ form.hero_subtitle.label(class="form-label") }}
+                                {{ form.hero_subtitle(class="form-control") }}
+                                <div class="form-text">{{ form.hero_subtitle.description }}</div>
+                            </div>
+                             <div class="mb-3">
+                                {{ form.hero_button_text.label(class="form-label") }}
+                                {{ form.hero_button_text(class="form-control") }}
+                                <div class="form-text">{{ form.hero_button_text.description }}</div>
+                            </div>
+                            <div class="mb-3">
+                                {{ form.hero_image.label(class="form-label") }}
+                                {{ form.hero_image(class="form-control") }}
+                                {% if form.hero_image.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.hero_image.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                {% if current_hero_image %}
+                                    <div class="mt-2">
+                                        <small>الصورة الحالية:</small>
+                                        <img src="{{ url_for('static', filename=current_hero_image) }}" alt="Hero Image" style="max-width: 200px; height: auto; display: block; margin-top: 5px; border-radius: 6px;">
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.hero_height.label(class="form-label") }}
+                                {{ form.hero_height(class="form-control", placeholder="مثال: 75") }}
+                                <div class="form-text">{{ form.hero_height.description }}</div>
+                                {% if form.hero_height.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.hero_height.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <hr class="my-4">
+
+                            <h5 class="mt-4 mb-3">معلومات التواصل</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.contact_email.label(class="form-label") }}
+                                    {{ form.contact_email(class="form-control") }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.phone_number.label(class="form-label") }}
+                                    {{ form.phone_number(class="form-control") }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.whatsapp_number.label(class="form-label") }}
+                                    {{ form.whatsapp_number(class="form-control") }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.address.label(class="form-label") }}
+                                    {{ form.address(class="form-control") }}
+                                </div>
+                            </div>
+                            
+                            <hr class="my-4">
+
+                            <h5 class="mb-3">روابط الشبكات الاجتماعية</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.facebook_url.label(class="form-label") }}
+                                    {{ form.facebook_url(class="form-control") }}
+                                </div>
+                                 <div class="col-md-6 mb-3">
+                                    {{ form.instagram_url.label(class="form-label") }}
+                                    {{ form.instagram_url(class="form-control") }}
+                                </div>
+                                 <div class="col-md-6 mb-3">
+                                    {{ form.twitter_url.label(class="form-label") }}
+                                    {{ form.twitter_url(class="form-control") }}
+                                </div>
+                            </div>
+                            
+                            <hr class="my-4">
+
+                            <h5 class="mb-3">محتوى الموقع</h5>
+                            <div class="mb-3">
+                                {{ form.homepage_about_us_content.label(class="form-label") }}
+                                {{ form.homepage_about_us_content(class="form-control") }}
+                                <div class="form-text">{{ form.homepage_about_us_content.description }}</div>
+                            </div>
+                            <div class="mb-3">
+                                {{ form.homepage_about_products_content.label(class="form-label") }}
+                                {{ form.homepage_about_products_content(class="form-control") }}
+                                <div class="form-text">{{ form.homepage_about_products_content.description }}</div>
+                            </div>
+                            <div class="mb-3">
+                                {{ form.footer_about_us_content.label(class="form-label") }}
+                                {{ form.footer_about_us_content(class="form-control") }}
+                                <div class="form-text">{{ form.footer_about_us_content.description }}</div>
+                            </div>
+
+                            {{ form.submit(class="btn btn-primary mt-3") }}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %} 

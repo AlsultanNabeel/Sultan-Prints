@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block title %}إضافة منتج جديد - متجر البلايز المميزة{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-sidebar {
+        min-height: calc(100vh - 300px);
+    }
+    
+    .admin-sidebar .nav-link {
+        color: #333;
+        border-radius: 0;
+        padding: 0.75rem 1rem;
+    }
+    
+    .admin-sidebar .nav-link:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+    
+    .admin-sidebar .nav-link.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .image-preview {
+        width: 100%;
+        height: 200px;
+        border: 1px dashed #ccc;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        overflow: hidden;
+    }
+    
+    .image-preview img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="admin-add-product py-5">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Admin Sidebar -->
+            <div class="col-lg-3 col-xl-2">
+                <div class="list-group">
+                    <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action active">
+                        <i class="fas fa-box me-2"></i> المنتجات
+                    </a>
+                    <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-shopping-bag me-2"></i> الطلبات
+                    </a>
+                    <a href="{{ url_for('admin.designs') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-palette me-2"></i> التصاميم
+                    </a>
+                    <a href="{{ url_for('admin.logout') }}" class="list-group-item list-group-item-action text-danger">
+                        <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-lg-9 col-xl-10">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h2 class="h4 mb-0">إضافة منتج جديد</h2>
+                            <a href="{{ url_for('admin.products') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-right me-1"></i> العودة للمنتجات
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Add Product Form -->
+                <form action="{{ url_for('admin.add_product') }}" method="POST" enctype="multipart/form-data">
+                    {{ form.csrf_token }}
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card mb-4">
+                                <div class="card-header bg-white">
+                                    <h5 class="mb-0">بيانات المنتج</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        {{ form.name.label(class="form-label") }}
+                                        {{ form.name(class="form-control", required=true) }}
+                                    </div>
+                                    <div class="mb-3">
+                                        {{ form.description.label(class="form-label") }}
+                                        {{ form.description(class="form-control", rows="5") }}
+                                    </div>
+                                    <div class="mb-3">
+                                        {{ form.features.label(class="form-label") }}
+                                        {{ form.features(class="form-control") }}
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                {{ form.price.label(class="form-label") }}
+                                                {{ form.price(class="form-control", required=true) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        {{ form.material.label(class="form-label") }}
+                                        {{ form.material(class="form-control") }}
+                                    </div>
+                                    <div class="mb-3">
+                                        {{ form.category.label(class="form-label") }}
+                                        {{ form.category(class="form-control", placeholder="مثال: تيشيرتات، فلسطين، صيف 2024") }}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header bg-white">
+                                    <h5 class="mb-0">خيارات المنتج</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">المقاسات المتاحة *</label>
+                                            <div class="d-flex flex-wrap">
+                                                {% for subfield in form.sizes %}
+                                                <div class="form-check me-3">
+                                                    {{ subfield() }}
+                                                    {{ subfield.label(class="form-check-label") }}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">الألوان المتاحة *</label>
+                                            <div class="d-flex flex-wrap">
+                                                {% for subfield in form.colors %}
+                                                <div class="form-check me-3">
+                                                    {{ subfield() }}
+                                                    {{ subfield.label(class="form-check-label") }}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card mb-4">
+                                <div class="card-header bg-white">
+                                    <h5 class="mb-0">صورة المنتج</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <div class="image-preview mb-3" id="imagePreview">
+                                            <div class="text-center text-muted">
+                                                <i class="fas fa-image fa-3x mb-2"></i>
+                                                <p>معاينة الصورة</p>
+                                            </div>
+                                        </div>
+                                        {{ form.image(class="form-control", accept="image/*") }}
+                                        <div class="form-text">يفضل صورة بأبعاد 800×800 بيكسل.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header bg-white">
+                                    <h5 class="mb-0">الحالة والنشر</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3 form-check">
+                                        {{ form.in_stock() }}
+                                        {{ form.in_stock.label(class="form-check-label") }}
+                                    </div>
+                                    <div class="mb-3 form-check">
+                                        {{ form.featured() }}
+                                        {{ form.featured.label(class="form-check-label") }}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-body">
+                                    {{ form.submit(class="btn btn-primary w-100") }}
+                                    <button type="reset" class="btn btn-outline-secondary w-100 mt-2">
+                                        <i class="fas fa-times me-1"></i> إعادة تعيين
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageInput = document.getElementById('image');
+        const imagePreview = document.getElementById('imagePreview');
+        
+        imageInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.innerHTML = `<img src="${e.target.result}" alt="Product Preview">`;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    });
+</script>
+{% endblock %}

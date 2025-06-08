@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}تتبع الطلب{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="text-center mb-4">تتبع طلبك</h2>
+                    
+                    {% if not searched_order_number %}
+                    <form method="GET" action="{{ url_for('main.track_order') }}" class="mb-4">
+                        <div class="form-group mb-3">
+                            <label for="order_number_input">رقم الطلب</label>
+                            <input type="text" class="form-control" id="order_number_input" name="order_number" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">تتبع</button>
+                    </form>
+                    {% endif %}
+                    
+                    {% if order %}
+                    <div class="order-details">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>رقم الطلب: {{ order.reference }}</h5>
+                            <span>{{ order.created_at.strftime('%Y-%m-%d') }}</span>
+                        </div>
+                        
+                        <div class="order-items mt-4">
+                            <h5>المنتجات:</h5>
+                            {% for item in order.order_items %}
+                            <div class="order-item d-flex align-items-center mb-3">
+                                <div class="ms-0">
+                                    <h6 class="mb-0">{{ item.product_name }}</h6>
+                                    <small>المقاس: {{ item.size|default('N/A') }} | اللون: {{ item.color|default('N/A') }} | الكمية: {{ item.quantity }}</small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="shipping-details mt-4">
+                            <h5>معلومات التوصيل:</h5>
+                            <p>{{ order.customer_name }}<br>
+                            {{ order.customer_phone }}<br>
+                            {{ order.address }}</p>
+                        </div>
+
+                        <!-- Order Status Timeline -->
+                        <div class="order-status-timeline mt-5">
+                            <h5 class="mb-4">سجل تتبع الطلب:</h5>
+                            <div class="timeline">
+                                {% for status in order.status_history %}
+                                <div class="timeline-item">
+                                    <div class="timeline-icon">
+                                        {% if 'delivered' in status.status or 'completed' in status.status %}
+                                            <i class="fas fa-check-circle text-success"></i>
+                                        {% elif 'shipped' in status.status or 'delivery' in status.status %}
+                                            <i class="fas fa-truck text-primary"></i>
+                                        {% elif 'processing' in status.status or 'printing' in status.status %}
+                                            <i class="fas fa-cogs text-info"></i>
+                                        {% elif 'cancelled' in status.status or 'refunded' in status.status %}
+                                            <i class="fas fa-times-circle text-danger"></i>
+                                        {% else %}
+                                            <i class="fas fa-receipt text-muted"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">{{ status.status|capitalize }}</h6>
+                                        <p class="mb-1 text-muted">{{ status.timestamp.strftime('%Y-%m-%d at %I:%M %p') }}</p>
+                                        {% if status.notes %}
+                                            <small class="text-muted fst-italic">"{{ status.notes }}"</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if searched_order_number and not order and error_message_for_template %}
+                    <div class="alert alert-danger mt-4">
+                        {{ error_message_for_template }}
+                    </div>
+                    {% endif %}
+
+                    {% if searched_order_number %}
+                    <div class="mt-4 text-center">
+                        <a href="{{ url_for('main.track_order') }}" class="btn btn-outline-secondary">بحث عن طلب آخر</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.tracking-timeline {
+    display: flex;
+    justify-content: space-between;
+    margin: 40px 0;
+    position: relative;
+}
+
+.tracking-timeline::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #e9ecef;
+    z-index: 1;
+}
+
+.tracking-step {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    width: 25%;
+}
+
+.step-icon {
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    border: 2px solid #e9ecef;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+}
+
+.tracking-step.active .step-icon {
+    background: #007bff;
+    border-color: #007bff;
+    color: #fff;
+}
+
+.step-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.tracking-step.active .step-text {
+    color: #007bff;
+    font-weight: bold;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 40px;
+    border-left: 2px solid #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-icon {
+    position: absolute;
+    left: -21px; /* (40px icon width / 2) - 2px border width = 22px, but 21px looks better */
+    top: 0;
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.timeline-content {
+    padding-left: 20px;
+}
+</style>
+{% endblock %} 

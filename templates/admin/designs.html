@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}إضافة تصميم جديد - متجر البلايز المميزة{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-sidebar {
+        min-height: calc(100vh - 300px);
+    }
+    
+    .admin-sidebar .nav-link {
+        color: #333;
+        border-radius: 0;
+        padding: 0.75rem 1rem;
+    }
+    
+    .admin-sidebar .nav-link:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+    
+    .admin-sidebar .nav-link.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .image-preview {
+        width: 100%;
+        height: 300px;
+        border: 1px dashed #ccc;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        overflow: hidden;
+    }
+    
+    .image-preview img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="admin-add-design py-5">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Admin Sidebar -->
+            <div class="col-lg-3 mb-4">
+                {% include 'admin/_sidebar.html' %}
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-lg-9">
+                <div class="card mb-4">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">التصاميم الافتراضية</h5>
+                        <a href="{{ url_for('admin.add_product') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i> أضف منتج جديد
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if designs %}
+                        <div class="row">
+                            {% for design in designs %}
+                            <div class="col-md-4 mb-4">
+                                <div class="card">
+                                    <img src="{{ url_for('static', filename=design.image_path) }}" class="card-img-top" alt="{{ design.name }}">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ design.name }}</h5>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">تعديل</a>
+                                        <a href="#" class="btn btn-sm btn-outline-danger">حذف</a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-palette fa-4x text-muted mb-3"></i>
+                            <h5>لا توجد تصاميم</h5>
+                            <p>لم يتم إضافة أي تصاميم بعد.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageInput = document.getElementById('image');
+        const imagePreview = document.getElementById('imagePreview');
+        
+        imageInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.innerHTML = `<img src="${e.target.result}" alt="Design Preview">`;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    });
+</script>
+{% endblock %}

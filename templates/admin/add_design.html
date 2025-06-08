@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}إضافة تصميم جديد - متجر البلايز المميزة{% endblock %}
+
+{% block content %}
+<section class="admin-add-design py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="fw-bold">إضافة تصميم جديد</h1>
+            <a href="{{ url_for('admin_designs') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-right me-2"></i> العودة للتصاميم
+            </a>
+        </div>
+        
+        <div class="row">
+            <!-- Admin Sidebar -->
+            <div class="col-lg-3 mb-4">
+                <div class="list-group">
+                    <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-box me-2"></i> المنتجات
+                    </a>
+                    <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-shopping-bag me-2"></i> الطلبات
+                    </a>
+                    <a href="{{ url_for('admin.designs') }}" class="list-group-item list-group-item-action active">
+                        <i class="fas fa-palette me-2"></i> التصاميم
+                    </a>
+                    <a href="{{ url_for('admin.logout') }}" class="list-group-item list-group-item-action text-danger">
+                        <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Admin Content -->
+            <div class="col-lg-9">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">{% if form.instance %}تعديل تصميم{% else %}إضافة تصميم جديد{% endif %}</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('admin_add_design') }}" method="POST" enctype="multipart/form-data">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="name" class="form-label">اسم التصميم *</label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+                                <div class="col-12">
+                                    <label for="description" class="form-label">وصف التصميم</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="image" class="form-label">صورة التصميم *</label>
+                                    <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+                                    <div class="form-text">الملفات المسموحة: PNG, JPG, JPEG, GIF, SVG</div>
+                                </div>
+                                <div class="col-12 mt-4">
+                                    <div class="design-preview d-none">
+                                        <h5>معاينة التصميم</h5>
+                                        <img id="preview-image" src="#" alt="معاينة التصميم" class="img-fluid mb-3" style="max-height: 300px;">
+                                    </div>
+                                </div>
+                                <div class="col-12 mt-4">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i> حفظ التصميم
+                                    </button>
+                                    <a href="{{ url_for('admin_designs') }}" class="btn btn-outline-secondary">إلغاء</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Preview uploaded image
+        const imageInput = document.getElementById('image');
+        const previewImage = document.getElementById('preview-image');
+        const designPreview = document.querySelector('.design-preview');
+        
+        imageInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    designPreview.classList.remove('d-none');
+                };
+                
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    });
+</script>
+{% endblock %}

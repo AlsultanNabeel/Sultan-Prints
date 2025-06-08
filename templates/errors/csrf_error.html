@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}خطأ في طلب CSRF - متجر البلايز المميزة{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body text-center p-5">
+                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-4"></i>
+                    <h1 class="h3 mb-3">خطأ في الطلب</h1>
+                    <p class="lead mb-4">حدث خطأ في طلبك: {{ reason }}</p>
+                    <p class="mb-4">قد يكون هذا بسبب انتهاء صلاحية الجلسة أو تم إعادة تحميل الصفحة. يرجى المحاولة مرة أخرى.</p>
+                    <div class="mt-4">
+                        <a href="javascript:history.back()" class="btn btn-secondary me-2">
+                            <i class="fas fa-arrow-left me-2"></i> العودة للصفحة السابقة
+                        </a>
+                        <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                            <i class="fas fa-home me-2"></i> الذهاب للصفحة الرئيسية
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

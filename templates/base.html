@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sultan Prints{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+    
+    <!-- Preload critical assets -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Oswald:wght@700&display=swap" as="style">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" as="style">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style">
+    
+    <!-- CDN Resources -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Oswald:wght@700&display=swap">
+    
+    <!-- Compressed and cached CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Cache control -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    
+    <!-- Meta tags for CSRF protection -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100 {% if active_announcements %}with-announcement-bar{% endif %}">
+    
+    <div id="toast-container"></div>
+
+    <!-- Announcement Bar -->
+    {% if active_announcements %}
+    <div id="announcementBar" class="announcement-bar">
+        <div class="announcement-carousel">
+            {% for ann in active_announcements %}
+            <div class="announcement-item">{{ ann.text }}</div>
+            {% endfor %}
+        </div>
+        <button class="ann-carousel-btn prev-btn"><i class="fas fa-chevron-right"></i></button>
+        <button class="ann-carousel-btn next-btn"><i class="fas fa-chevron-left"></i></button>
+    </div>
+    {% endif %}
+    
+    {% include 'partials/header.html' %}
+    
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+    
+    {% include 'partials/footer.html' %}
+    
+    <!-- CDN JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    
+    <!-- Compressed and cached JS -->
+    <script src="{{ url_for('static', filename='js/main.min.js') }}" defer></script>
+    
+    <style>
+    .announcement-bar {
+        width: 100vw;
+        background: #2a2a2a;
+        color: #fff;
+        text-align: center;
+        font-family: 'Poppins', 'Inter', 'Cairo', sans-serif;
+        font-size: 1rem;
+        font-weight: 500;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        padding: 0.3rem 60px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 2000;
+        transition: transform 0.3s ease-in-out;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-bottom: none;
+    }
+    .announcement-carousel {
+        position: relative;
+        width: 100%;
+        height: 1.5em; /* Match line-height */
+    }
+    .announcement-item {
+        position: absolute;
+        width: 100%;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+        line-height: 1.5em;
+    }
+    .announcement-item.active {
+        opacity: 1;
+    }
+    .ann-carousel-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: white;
+        font-size: 0.9rem;
+        cursor: pointer;
+        z-index: 2010;
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+    }
+    .ann-carousel-btn:hover {
+        opacity: 1;
+    }
+    .prev-btn {
+        right: 25px;
+    }
+    .next-btn {
+        left: 25px;
+    }
+
+    body.with-announcement-bar {
+        padding-top: 2.1rem !important; /* Match announcement bar height */
+    }
+
+    body.with-announcement-bar .navbar.sticky-top {
+        top: 2.1rem; /* Match announcement bar height */
+        transition: top 0.3s ease-in-out;
+    }
+
+    body.with-announcement-bar.announcement-hidden .navbar.sticky-top {
+        top: 0;
+    }
+    
+    .navbar-scrolled {
+        padding-top: 0.1rem !important;
+        padding-bottom: 0.1rem !important;
+        transition: padding 0.3s ease-in-out;
+    }
+    .navbar-scrolled .logo-text-wrapper {
+        transform: scale(0.8);
+        transition: transform 0.3s ease-in-out;
+    }
+    .cart-updated {
+        animation: bounce 0.6s ease;
+    }
+    @keyframes bounce {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.4); }
+    }
+    
+    /* Toast Notifications */
+    #toast-container {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .toast-notification {
+        padding: 15px 25px;
+        border-radius: 8px;
+        color: white;
+        font-family: 'Cairo', sans-serif;
+        font-size: 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .toast-notification.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .toast-notification.success {
+        background-color: #007e3a; /* Green */
+    }
+    .toast-notification.error {
+        background-color: #dc3545; /* Red */
+    }
+    .toast-notification.info {
+        background-color: #0d6efd; /* Blue */
+    }
+    </style>
+    
+    {% block extra_js %}{% endblock %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Announcement Carousel
+            const carousel = document.querySelector('.announcement-carousel');
+            if (carousel) {
+                const items = carousel.querySelectorAll('.announcement-item');
+                const prevBtn = document.querySelector('.prev-btn');
+                const nextBtn = document.querySelector('.next-btn');
+                let currentIndex = 0;
+                let autoPlayInterval;
+
+                function showItem(index) {
+                    items.forEach((item, i) => {
+                        item.classList.remove('active');
+                        if (i === index) {
+                            item.classList.add('active');
+                        }
+                    });
+                }
+
+                function nextItem() {
+                    currentIndex = (currentIndex + 1) % items.length;
+                    showItem(currentIndex);
+                }
+
+                function prevItem() {
+                    currentIndex = (currentIndex - 1 + items.length) % items.length;
+                    showItem(currentIndex);
+                }
+                
+                function startAutoPlay() {
+                    autoPlayInterval = setInterval(nextItem, 5000);
+                }
+
+                function stopAutoPlay() {
+                    clearInterval(autoPlayInterval);
+                }
+
+                if (items.length > 1) {
+                    prevBtn.addEventListener('click', () => {
+                        prevItem();
+                        stopAutoPlay();
+                        startAutoPlay();
+                    });
+                    nextBtn.addEventListener('click', () => {
+                        nextItem();
+                        stopAutoPlay();
+                        startAutoPlay();
+                    });
+                    startAutoPlay();
+                } else {
+                    // Hide buttons if only one item
+                    prevBtn.style.display = 'none';
+                    nextBtn.style.display = 'none';
+                }
+                
+                if (items.length > 0) {
+                    showItem(currentIndex);
+                }
+            }
+
+            // Scroll behaviors
+            const body = document.body;
+            const announcementBar = document.getElementById('announcementBar');
+            const navbar = document.querySelector('.navbar');
+
+            window.addEventListener('scroll', function() {
+                // Handle announcement bar visibility and navbar position
+                if (window.scrollY > 1) {
+                    if (announcementBar) {
+                        announcementBar.style.transform = 'translateY(-100%)';
+                        body.classList.add('announcement-hidden');
+                    }
+                } else {
+                    if (announcementBar) {
+                        announcementBar.style.transform = 'translateY(0)';
+                        body.classList.remove('announcement-hidden');
+                    }
+                }
+
+                // Handle navbar shrinking
+                if (navbar) {
+                    if (window.scrollY > 80) {
+                        navbar.classList.add('navbar-scrolled');
+                    } else {
+                        navbar.classList.remove('navbar-scrolled');
+                    }
+                }
+            });
+
+            // Global function to handle cart updates
+            function handleAddToCart(form) {
+                const formData = new FormData(form);
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    // First, check for a redirect response
+                    if (response.status === 400) {
+                        return response.json().then(data => {
+                            if (data.redirect) {
+                                // Show a message before redirecting
+                                showToast(data.message || 'الرجاء تحديد خيارات المنتج.', 'info');
+                                setTimeout(() => {
+                                    window.location.href = data.redirect;
+                                }, 1500); // Wait 1.5s so user can read the toast
+                            }
+                            return Promise.reject(data);
+                        });
+                    }
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // This will only run for successful additions (status 200)
+                    if (data.cart_count !== undefined) {
+                        const cartCountEl = document.getElementById('cartCount');
+                        cartCountEl.textContent = data.cart_count;
+                        
+                        cartCountEl.classList.add('cart-updated');
+                        setTimeout(() => cartCountEl.classList.remove('cart-updated'), 600);
+                    }
+                    showToast(data.message || 'تم تحديث السلة بنجاح!', 'success');
+                })
+                .catch(error => {
+                    console.error('Error adding to cart:', error);
+                    if (error && !error.redirect) {
+                        showToast(error.message || 'حدث خطأ ما.', 'error');
+                    }
+                });
+            }
+
+            // Toast Notification Function
+            function showToast(message, type = 'info') {
+                const toastContainer = document.getElementById('toast-container');
+                if (!toastContainer) {
+                    console.error('Toast container not found!');
+                    return;
+                }
+                
+                const toast = document.createElement('div');
+                toast.className = `toast-notification ${type}`;
+                toast.textContent = message;
+                
+                toastContainer.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 100);
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        toastContainer.removeChild(toast);
+                    }, 500);
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

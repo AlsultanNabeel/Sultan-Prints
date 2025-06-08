@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }} - متجر فلسطين براند{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-main-image {
+        height: 400px;
+        object-fit: cover;
+    }
+    
+    .design-thumbnail {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.3s;
+    }
+    
+    .design-thumbnail.active {
+        border-color: #0d6efd;
+    }
+    
+    .design-thumbnail:hover {
+        transform: scale(1.05);
+    }
+    
+    .color-circle {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 10px;
+        cursor: pointer;
+        border: 2px solid #e9ecef;
+        transition: all 0.2s ease-in-out;
+        position: relative;
+        text-align: center;
+        line-height: 35px;
+    }
+    
+    .color-circle.active {
+        border-color: #007bff;
+        border-width: 4px;
+        transform: scale(1.15);
+    }
+    
+    .color-circle.active::after {
+        content: '✔';
+        color: white;
+        font-size: 20px;
+        font-weight: bold;
+        -webkit-text-stroke: 1px black;
+        text-stroke: 1px black;
+    }
+    
+    .color-options-list {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .color-option-label {
+        display: flex;
+        align-items: center;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .color-option-label:hover {
+        border-color: #007bff;
+    }
+    
+    .color-input:checked + .color-option-label {
+        border-color: #007bff;
+        background-color: #e7f1ff;
+        font-weight: bold;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .color-swatch {
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        margin-left: 10px;
+        border: 1px solid #ccc;
+    }
+    
+    .size-btn {
+        width: 50px;
+        height: 50px;
+        margin-right: 10px;
+    }
+    
+    #custom-design-preview {
+        max-width: 100%;
+        max-height: 150px;
+        margin-top: 10px;
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb" class="mt-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.products') }}">المنتجات</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row mt-4">
+        <!-- صورة المنتج -->
+        <div class="col-md-6">
+            {% if product.image %}
+                <img src="{{ url_for('static', filename=product.image) }}" class="img-fluid product-main-image rounded" alt="{{ product.name }}">
+            {% else %}
+                <img src="{{ url_for('static', filename='images/placeholder.jpg') }}" class="img-fluid product-main-image rounded" alt="{{ product.name }}">
+            {% endif %}
+        </div>
+        
+        <!-- تفاصيل المنتج -->
+        <div class="col-md-6">
+            <h2 class="mb-3">{{ product.name }}</h2>
+            <p class="text-muted">{{ product.material or 'قطن عالي الجودة' }}</p>
+            <p class="fs-4 text-primary fw-bold mb-4">{{ "{:,.2f}".format(product.price) }} جنيه</p>
+            
+            <form action="{{ url_for('cart.add_to_cart') }}" method="POST" enctype="multipart/form-data" id="addToCartForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+                
+                <!-- اختيار المقاس -->
+                <div class="mb-4">
+                    <h5>اختر المقاس:</h5>
+                    <div>
+                        {% for size in sizes %}
+                            <input type="radio" class="btn-check" name="size" id="size-{{ size }}" value="{{ size }}" {% if loop.first %}checked{% endif %} required>
+                            <label class="btn btn-outline-secondary size-btn" for="size-{{ size }}">{{ size }}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+               <!-- اختيار اللون -->
+                <div class="mb-4">
+                    <h5>اختر اللون:</h5>
+                    {% if colors %}
+                        <ul class="color-options-list">
+                            {% for color_option in colors %}
+                                <li>
+                                    <input type="radio" class="color-input d-none" name="color" id="color-{{ color_option.value }}" value="{{ color_option.value }}" {% if loop.first %}checked{% endif %} required>
+                                    <label for="color-{{ color_option.value }}" class="color-option-label">
+                                        <span class="color-swatch" style="background-color: {{ color_option.hex }};"></span>
+                                        {{ color_option.name }}
+                                    </label>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">لا توجد خيارات ألوان متاحة لهذا المنتج.</p>
+                    {% endif %}
+                </div>
+                
+                <!-- الكمية -->
+                <div class="mb-4">
+                    <label for="quantity" class="form-label fw-bold">الكمية:</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" style="width: 100px;">
+                </div>
+                
+                <!-- زر إضافة إلى سلة التسوق -->
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-cart-plus me-2"></i> إضافة إلى سلة التسوق
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- وصف المنتج -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>تفاصيل المنتج</h4>
+                </div>
+                <div class="card-body">
+                    <p>{{ product.description or 'بلوزة عالية الجودة مصنوعة من قطن 100%، مريحة وأنيقة ومناسبة لمختلف المناسبات.' }}</p>
+                    
+                    {% if product.features %}
+                        <h5 class="mt-4">المميزات:</h5>
+                        <ul>
+                            {% for feature in product.features.split('\n') if feature.strip() %}
+                                <li>{{ feature.strip() }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // This script block is now focused on the add-to-cart functionality
+    // The color selection is handled by CSS using the :checked pseudo-selector,
+    // which is more reliable and efficient. The old color circle script is no longer needed.
+
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+        toast.textContent = message;
+        
+        container.appendChild(toast);
+
+        // Animate in
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 100);
+
+        // Animate out and remove after 5 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                container.removeChild(toast);
+            }, 300);
+        }, 5000);
+    }
+
+    async function handleAddToCart(form) {
+        const formData = new FormData(form);
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton.innerHTML;
+
+        // Disable button and show loading state
+        submitButton.disabled = true;
+        submitButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جار الإضافة...`;
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: new URLSearchParams(formData), // Send as form-urlencoded
+                headers: {
+                    'X-CSRFToken': formData.get('csrf_token'),
+                    'X-Requested-With': 'XMLHttpRequest' // To let backend know it's an AJAX request
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showToast(data.message || 'تمت إضافة المنتج بنجاح!', 'success');
+                // Update cart count in the navbar
+                const cartCountElement = document.getElementById('cart-count');
+                if (cartCountElement) {
+                    cartCountElement.textContent = data.cart_count;
+                    cartCountElement.closest('.cart-icon-wrapper').classList.add('cart-updated');
+                    setTimeout(() => {
+                         cartCountElement.closest('.cart-icon-wrapper').classList.remove('cart-updated');
+                    }, 600);
+                }
+            } else {
+                 if (data.redirect) {
+                    showToast('الرجاء تحديد كل الخيارات المطلوبة.', 'error');
+                    // Optionally, redirect the user
+                    // window.location.href = data.redirect;
+                } else {
+                    showToast(data.message || 'حدث خطأ ما.', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Add to cart error:', error);
+            showToast('حدث خطأ في الشبكة. الرجاء المحاولة مرة أخرى.', 'error');
+        } finally {
+            // Restore button
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalButtonText;
+        }
+    }
+
+    // Attach event listener to the form
+    document.getElementById('addToCartForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        handleAddToCart(this);
+    });
+
+</script>
+{% endblock %}

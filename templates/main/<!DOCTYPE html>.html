@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>متجر التيشيرتات الحديث</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>جاري التحميل...</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><i class="fas fa-tshirt"></i> متجر التيشيرتات</h1>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home">الرئيسية</a></li>
+                <li><a href="#products">المنتجات</a></li>
+                <li><a href="#about">من نحن</a></li>
+                <li><a href="#contact">اتصل بنا</a></li>
+            </ul>
+            <div class="nav-icons">
+                <a href="#cart" class="cart-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count">0</span>
+                </a>
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content bounceIn">
+            <h1>أحدث تشكيلة تيشيرتات</h1>
+            <p>اكتشف مجموعتنا المتنوعة من التيشيرتات العصرية والمريحة</p>
+            <button class="cta-btn">تسوق الآن</button>
+        </div>
+        <div class="hero-image">
+            <img src="images/hero-tshirt.jpg" alt="تيشيرت مميز">
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section id="products" class="products">
+        <div class="container">
+            <h2 class="section-title">منتجاتنا المميزة</h2>
+            <div class="filter-tabs">
+                <button class="filter-btn active" data-filter="all">الكل</button>
+                <button class="filter-btn" data-filter="men">رجالي</button>
+                <button class="filter-btn" data-filter="women">نسائي</button>
+                <button class="filter-btn" data-filter="kids">أطفال</button>
+            </div>
+            <div class="products-grid" id="productsGrid">
+                <!-- Products will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <h2 class="section-title">من نحن</h2>
+            <div class="about-content">
+                <div class="about-text">
+                    <p>نحن متجر متخصص في بيع أفضل أنواع التيشيرتات العصرية والمريحة. نهدف إلى تقديم جودة عالية بأسعار منافسة.</p>
+                </div>
+                <div class="features">
+                    <div class="feature">
+                        <i class="fas fa-shipping-fast"></i>
+                        <h3>شحن سريع</h3>
+                        <p>توصيل خلال 24-48 ساعة</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-medal"></i>
+                        <h3>جودة عالية</h3>
+                        <p>خامات ممتازة ومضمونة</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-exchange-alt"></i>
+                        <h3>إرجاع مجاني</h3>
+                        <p>إمكانية الإرجاع خلال 14 يوم</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <h2 class="section-title">تواصل معنا</h2>
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <span>+966 123 456 789</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>info@tshirtshop.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>الرياض، المملكة العربية السعودية</span>
+                    </div>
+                </div>
+                <form class="contact-form">
+                    <input type="text" placeholder="الاسم" required>
+                    <input type="email" placeholder="البريد الإلكتروني" required>
+                    <textarea placeholder="الرسالة" rows="5" required></textarea>
+                    <button type="submit">إرسال</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 متجر التيشيرتات. جميع الحقوق محفوظة.</p>
+            <div class="social-links">
+                <a href="#"><i class="fab fa-facebook"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Shopping Cart Modal -->
+    <div class="cart-modal" id="cartModal">
+        <div class="cart-content">
+            <span class="close-cart">&times;</span>
+            <h2>سلة التسوق</h2>
+            <div class="cart-items" id="cartItems"></div>
+            <div class="cart-total">
+                <strong>المجموع: <span id="cartTotal">0</span> ريال</strong>
+            </div>
+            <button class="checkout-btn">إتمام الشراء</button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

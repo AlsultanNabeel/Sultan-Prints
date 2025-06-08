@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}سلة التسوق - متجر البلايز المميزة{% endblock %}
+
+{% block content %}
+<section class="cart-page py-5">
+    <div class="container">
+        <div class="section-heading mb-4">
+            <h1 class="fw-bold">سلة التسوق</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">سلة التسوق</li>
+                </ol>
+            </nav>
+        </div>
+        
+        {% if cart_items %}
+        <div class="row">
+            <!-- Cart Items -->
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">المنتجات في السلة ({{ cart_items|length }})</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-borderless table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" width="50%">المنتج</th>
+                                        <th scope="col" class="text-center">السعر</th>
+                                        <th scope="col" class="text-center">الكمية</th>
+                                        <th scope="col" class="text-center">الإجمالي</th>
+                                        <th scope="col" class="text-center"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in cart_items %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ url_for('static', filename=item.product.image or 'images/placeholder.jpg') }}" 
+                                                     alt="{{ item.product.name }}" class="img-fluid rounded" width="70">
+                                                <div class="ms-3">
+                                                    <h6 class="mb-1">{{ item.product.name }}</h6>
+                                                    <div class="small text-muted">
+                                                        المقاس: {{ item.size }} | اللون: {{ item.color }}
+                                                    </div>
+                                                    {% if item.design %}
+                                                    <div class="small text-muted">
+                                                        التصميم: {{ item.design.name }}
+                                                    </div>
+                                                    {% elif item.custom_design_path %}
+                                                    <div class="small text-muted">
+                                                        التصميم: تصميم مخصص
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center align-middle">{{ item.product.price }} جنيه</td>
+                                        <td class="text-center align-middle">{{ item.quantity }}</td>
+                                        <td class="text-center align-middle fw-bold">{{ item.subtotal }} جنيه</td>
+                                        <td class="text-center align-middle">
+                                            <form action="{{ url_for('cart.remove_from_cart', item_id=item.id) }}" method="POST">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                        onclick="return confirm('هل أنت متأكد من حذف هذا المنتج من السلة؟')">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">ملخص الطلب</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-3">
+                            <span>إجمالي المنتجات</span>
+                            <span class="fw-bold">{{ total }} جنيه</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span>رسوم الشحن</span>
+                            <span class="fw-bold">{{ 0 if total > 500 else 50 }} جنيه</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span class="fw-bold">المجموع الكلي</span>
+                            <span class="fw-bold text-primary h5">{{ total + (0 if total > 500 else 50) }} جنيه</span>
+                        </div>
+                        <div class="d-grid mt-4">
+                            <a href="{{ url_for('cart.checkout') }}" class="btn btn-primary btn-lg">
+                                المتابعة للدفع
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="mb-3">لديك كوبون خصم؟</h5>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="أدخل كود الخصم">
+                            <button class="btn btn-outline-dark" type="button">تطبيق</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <i class="fas fa-shipping-fast fa-2x text-primary mb-2"></i>
+                                <h5>شحن سريع</h5>
+                                <p class="mb-0 small">توصيل لجميع المحافظات</p>
+                            </div>
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <i class="fas fa-money-bill-wave fa-2x text-primary mb-2"></i>
+                                <h5>دفع آمن</h5>
+                                <p class="mb-0 small">دفع عند الاستلام أو فودافون كاش</p>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="fas fa-headset fa-2x text-primary mb-2"></i>
+                                <h5>دعم فني 24/7</h5>
+                                <p class="mb-0 small">مساعدة على مدار الساعة</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card text-center py-5">
+                    <div class="card-body">
+                        <i class="fas fa-shopping-cart fa-4x text-muted mb-4"></i>
+                        <h3>سلة التسوق فارغة</h3>
+                        <p class="mb-4">لم تقم بإضافة أي منتجات إلى سلة التسوق بعد</p>
+                        <a href="{{ url_for('main.products') }}" class="btn btn-primary">
+                            استكشاف المنتجات
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

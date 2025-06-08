@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ 'تعديل' if form.question.data else 'إضافة' }} سؤال شائع{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">{{ 'تعديل' if form.question.data else 'إضافة' }} سؤال شائع</h1>
+    <a href="{{ url_for('admin.faqs') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i> العودة إلى القائمة
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            
+            <div class="mb-3">
+                {{ form.question.label(class="form-label") }}
+                {{ form.question(class="form-control") }}
+            </div>
+            
+            <div class="mb-3">
+                {{ form.answer.label(class="form-label") }}
+                {{ form.answer(class="form-control") }}
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.display_order.label(class="form-label") }}
+                    {{ form.display_order(class="form-control") }}
+                    <small class="form-text text-muted">{{ form.display_order.description }}</small>
+                </div>
+                <div class="col-md-6 mb-3 d-flex align-items-center">
+                    <div class="form-check form-switch">
+                        {{ form.is_active(class="form-check-input") }}
+                        {{ form.is_active.label(class="form-check-label") }}
+                    </div>
+                </div>
+            </div>
+
+            {{ form.submit(class="btn btn-primary") }}
+        </form>
+    </div>
+</div>
+{% endblock %} 

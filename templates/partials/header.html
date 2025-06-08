@@ -1,0 +1,101 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-black sticky-top shadow-sm py-2">
+  <div class="container">
+    <!-- Mobile view: Centered logo and toggler -->
+    <a class="navbar-brand d-lg-none mx-auto" href="{{ url_for('main.index') }}">
+      <div class="logo-text-wrapper">
+        <span class="logo-line-1">SULTAN</span>
+        <span class="logo-line-2">PRINTS</span>
+      </div>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse justify-content-between w-100" id="navbarNav">
+      <!-- Left side links -->
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.index') }}">الرئيسية</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.products') }}">المتجر</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.custom_design') }}">صمم بنفسك</a></li>
+      </ul>
+
+      <!-- Centered Logo -->
+      <a class="navbar-brand d-none d-lg-block mx-auto" href="{{ url_for('main.index') }}">
+        <div class="logo-text-wrapper">
+          <span class="logo-line-1">SULTAN</span>
+          <span class="logo-line-2">PRINTS</span>
+        </div>
+      </a>
+
+      <!-- Right side links -->
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.show_page', slug='about-us') }}">من نحن</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.contact') }}">تواصل معنا</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.track_order') }}">تتبع طلبك</a></li>
+        <li class="nav-item ms-2">
+          <a class="nav-link position-relative" href="{{ url_for('cart.cart') }}">
+            <i class="fas fa-shopping-cart"></i>
+            <span id="cartCount" class="badge bg-success position-absolute top-0 start-100 translate-middle rounded-pill">
+              {{ cart_count }}
+            </span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<style>
+.navbar {
+  font-family: 'Poppins', 'Inter', 'Cairo', sans-serif;
+  background: #000 !important;
+}
+.navbar .nav-link {
+  color: #fff !important;
+  font-weight: 500;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
+  transition: color 0.2s;
+}
+.navbar .nav-link:hover, .navbar .nav-link.active {
+  color: #007e3a !important;
+}
+.navbar-brand .logo-text-wrapper {
+  color: #fff;
+  line-height: 0.95;
+  text-align: left;
+  border: 2px solid #fff;
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+.navbar-brand .logo-line-1,
+.navbar-brand .logo-line-2 {
+  display: block;
+  font-family: 'Oswald', 'Impact', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+.navbar-brand .logo-line-1 {
+  font-size: 1rem;
+  border-bottom: 2px solid #fff;
+  padding-bottom: 2px;
+  margin-bottom: 2px;
+}
+.navbar-brand .logo-line-2 {
+  font-size: 1rem;
+}
+.navbar-brand span {
+  color: #fff;
+  font-size: 1.2rem;
+}
+@media (max-width: 991.98px) {
+  .navbar-nav {
+    width: 100%;
+    text-align: center;
+    margin-top: 1rem;
+  }
+  .navbar-collapse {
+    
+  }
+}
+</style>

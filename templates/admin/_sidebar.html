@@ -1,0 +1,32 @@
+<div class="list-group">
+    <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action {% if 'products' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-box me-2"></i> المنتجات
+    </a>
+    <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action {% if 'orders' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-shopping-bag me-2"></i> الطلبات
+    </a>
+    <a href="{{ url_for('admin.designs') }}" class="list-group-item list-group-item-action {% if 'designs' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-palette me-2"></i> التصاميم
+    </a>
+    <a href="{{ url_for('admin.custom_designs') }}" class="list-group-item list-group-item-action {% if 'custom_designs' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-upload me-2"></i> التصاميم المخصصة
+    </a>
+    <a href="{{ url_for('admin.discounts') }}" class="list-group-item list-group-item-action {% if 'discounts' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-tags me-2"></i> أكواد الخصم
+    </a>
+    <a href="{{ url_for('admin.announcements') }}" class="list-group-item list-group-item-action {% if 'announcements' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-bullhorn me-2"></i> إدارة الإعلانات
+    </a>
+    <a href="{{ url_for('admin.faqs') }}" class="list-group-item list-group-item-action {% if 'faqs' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-question-circle me-2"></i> الأسئلة الشائعة
+    </a>
+    <a href="{{ url_for('admin.pages') }}" class="list-group-item list-group-item-action {% if 'pages' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-file-alt me-2"></i> إدارة الصفحات
+    </a>
+    <a href="{{ url_for('admin._settings') }}" class="list-group-item list-group-item-action {% if '_settings' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-cog me-2"></i> إعدادات الموقع
+    </a>
+    <a href="{{ url_for('admin.logout') }}" class="list-group-item list-group-item-action text-danger">
+        <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
+    </a>
+</div> 

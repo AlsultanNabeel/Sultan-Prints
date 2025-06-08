@@ -1,0 +1,112 @@
+<footer class="footer mt-auto py-5 bg-dark text-white">
+  <div class="container">
+    <div class="row gy-4">
+      
+      <!-- About Section -->
+      <div class="col-lg-4 col-md-6">
+        <h5 class="fw-bold mb-3">Sultan Prints</h5>
+        <p class="text-white-50">{{ settings.footer_about_us_content or 'متجر متخصص في طباعة التيشيرتات بتصاميم عصرية وفريدة بجودة عالية تليق بك.' }}</p>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="col-lg-2 col-md-6">
+        <h5 class="fw-bold mb-3">روابط سريعة</h5>
+        <ul class="list-unstyled">
+          <li class="mb-2"><a href="{{ url_for('main.index') }}" class="text-white-50">الرئيسية</a></li>
+          <li class="mb-2"><a href="{{ url_for('main.products') }}" class="text-white-50">المتجر</a></li>
+          <li class="mb-2"><a href="{{ url_for('main.show_page', slug='about-us') }}" class="text-white-50">من نحن</a></li>
+          <li class="mb-2"><a href="{{ url_for('main.contact') }}" class="text-white-50">تواصل معنا</a></li>
+        </ul>
+      </div>
+
+      <!-- Contact Info -->
+      <div class="col-lg-3 col-md-6">
+        <h5 class="fw-bold mb-3">تفاصيل الاتصال</h5>
+        <ul class="list-unstyled text-white-50">
+          {% if settings.address %}
+            <li class="d-flex mb-2">
+              <i class="fas fa-map-marker-alt mt-1 me-3 flex-shrink-0"></i>
+              <span>{{ settings.address }}</span>
+            </li>
+          {% endif %}
+          {% if settings.phone_number %}
+            <li class="d-flex mb-2">
+              <i class="fas fa-phone-alt mt-1 me-3 flex-shrink-0"></i>
+              <span dir="ltr">{{ settings.phone_number }}</span>
+            </li>
+          {% endif %}
+          {% if settings.contact_email %}
+            <li class="d-flex">
+              <i class="fas fa-envelope mt-1 me-3 flex-shrink-0"></i>
+              <span>{{ settings.contact_email }}</span>
+            </li>
+          {% endif %}
+        </ul>
+      </div>
+
+      <!-- Social Media -->
+      <div class="col-lg-3 col-md-6">
+        <h5 class="fw-bold mb-3">تابعنا</h5>
+        <div class="d-flex">
+          {% if settings.facebook_url %}
+            <a href="{{ settings.facebook_url or '#' }}" target="_blank" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+          {% endif %}
+          {% if settings.instagram_url %}
+            <a href="{{ settings.instagram_url or '#' }}" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
+          {% endif %}
+          {% if settings.twitter_url %}
+            <a href="{{ settings.twitter_url or '#' }}" target="_blank" class="social-icon"><i class="fab fa-twitter"></i></a>
+          {% endif %}
+           {% if settings.whatsapp_number %}
+            <a href="https://wa.me/{{ settings.whatsapp_number }}" target="_blank" class="social-icon"><i class="fab fa-whatsapp"></i></a>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+    <hr class="my-4" style="border-color: rgba(255,255,255,0.1);">
+    <div class="row align-items-center">
+        <div class="col-md-6">
+             <p class="mb-md-0 text-white-50" style="font-size: 0.9rem;">&copy; {{ now.year }} Sultan Prints. جميع الحقوق محفوظة.</p>
+        </div>
+         <div class="col-md-6 text-md-end">
+             <ul class="list-inline mb-0">
+                <li class="list-inline-item"><a href="{{ url_for('main.show_page', slug='privacy-policy') }}" class="text-white-50">سياسة الخصوصية</a></li>
+                <li class="list-inline-item">|</li>
+                <li class="list-inline-item"><a href="{{ url_for('main.show_page', slug='terms-and-conditions') }}" class="text-white-50">الشروط والأحكام</a></li>
+             </ul>
+        </div>
+    </div>
+  </div>
+</footer>
+<style>
+.footer {
+  font-family: 'Poppins','Inter','Cairo',sans-serif;
+}
+.footer a.text-white-50 {
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+}
+.footer a.text-white-50:hover {
+  color: #fff !important;
+  text-decoration: underline;
+}
+.social-icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    margin-left: 10px;
+    transition: all 0.2s ease-in-out;
+    text-decoration: none;
+}
+.social-icon:hover {
+    background-color: #007e3a;
+    color: #fff;
+    transform: translateY(-2px);
+}
+</style>

@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}تأكيد الطلب - متجر البلايز المميزة{% endblock %}
+
+{% block content %}
+<section class="order-confirmation py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card text-center">
+                    <div class="card-body py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-check-circle text-success fa-4x"></i>
+                        </div>
+                        <h2 class="mb-3">تم تأكيد طلبك بنجاح!</h2>
+                        <p class="lead mb-4">شكراً لك على طلبك. سنقوم بتجهيزه وشحنه في أقرب وقت ممكن.</p>
+                        
+                        <div class="order-details bg-light p-4 rounded text-start mb-4">
+                            <h4 class="mb-3">تفاصيل الطلب</h4>
+                            <div class="row mb-2">
+                                <div class="col-md-4 fw-bold">رقم الطلب:</div>
+                                <div class="col-md-8">{{ order.reference }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-4 fw-bold">تاريخ الطلب:</div>
+                                <div class="col-md-8">{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-4 fw-bold">طريقة الدفع:</div>
+                                <div class="col-md-8">
+                                    {% if order.payment_method == 'vodafone_cash' %}
+                                        فودافون كاش
+                                    {% else %}
+                                        الدفع عند الاستلام
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-4 fw-bold">إجمالي المبلغ:</div>
+                                <div class="col-md-8">{{ order.total_amount }} جنيه</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-4 fw-bold">اسم المستلم:</div>
+                                <div class="col-md-8">{{ order.customer_name }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-4 fw-bold">رقم الهاتف:</div>
+                                <div class="col-md-8">{{ order.customer_phone }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 fw-bold">عنوان التوصيل:</div>
+                                <div class="col-md-8">{{ order.address }}</div>
+                            </div>
+                        </div>
+                        
+                        <h4 class="mb-3">المنتجات التي تم طلبها</h4>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>المقاس</th>
+                                        <th>اللون</th>
+                                        <th>الكمية</th>
+                                        <th>السعر</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in order.order_items %}
+                                    <tr>
+                                        <td>{{ item.product_name }}</td>
+                                        <td>{{ item.size|default('غير محدد') }}</td>
+                                        <td>{{ item.color }}</td>
+                                        <td>{{ item.quantity }}</td>
+                                        <td>{{ item.price }} جنيه</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="4" class="text-end fw-bold">الإجمالي</td>
+                                        <td class="fw-bold">{{ order.total_amount }} جنيه</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        
+                        <div class="alert alert-info mt-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            تم إرسال تفاصيل الطلب إلى بريدك الإلكتروني. يمكنك متابعة حالة طلبك من خلال صفحة "حسابي".
+                        </div>
+                        
+                        <div class="mt-4">
+                            <a href="{{ url_for('main.products') }}" class="btn btn-primary me-2">
+                                مواصلة التسوق
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

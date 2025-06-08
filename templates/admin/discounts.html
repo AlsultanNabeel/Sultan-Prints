@@ -1,0 +1,339 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="discounts-container">
+    <div class="header">
+        <h1>إدارة الخصومات والكوبونات</h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDiscountModal">
+            <i class="fas fa-plus"></i> إضافة كوبون جديد
+        </button>
+    </div>
+
+    <!-- Active Discounts -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title mb-0">الكوبونات النشطة</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الكود</th>
+                            <th>النوع</th>
+                            <th>القيمة</th>
+                            <th>الحد الأدنى</th>
+                            <th>الحد الأقصى</th>
+                            <th>تاريخ الانتهاء</th>
+                            <th>عدد الاستخدامات</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for discount in active_discounts %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-primary">{{ discount.code }}</span>
+                            </td>
+                            <td>
+                                {% if discount.type == 'percentage' %}
+                                نسبة مئوية
+                                {% else %}
+                                مبلغ ثابت
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if discount.type == 'percentage' %}
+                                {{ discount.value }}%
+                                {% else %}
+                                {{ "{:,.2f}".format(discount.value) }} جنيه
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if discount.min_purchase %}
+                                {{ "{:,.2f}".format(discount.min_purchase) }} جنيه
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if discount.max_discount %}
+                                {{ "{:,.2f}".format(discount.max_discount) }} جنيه
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>{{ discount.end_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if discount.usage_limit %}
+                                {{ discount.times_used }}/{{ discount.usage_limit }}
+                                {% else %}
+                                {{ discount.times_used }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="editDiscount('{{ discount.id }}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            onclick="deactivateDiscount('{{ discount.id }}')">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expired/Inactive Discounts -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title mb-0">الكوبونات المنتهية/غير النشطة</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الكود</th>
+                            <th>النوع</th>
+                            <th>القيمة</th>
+                            <th>تاريخ الانتهاء</th>
+                            <th>عدد الاستخدامات</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for discount in inactive_discounts %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary">{{ discount.code }}</span>
+                            </td>
+                            <td>
+                                {% if discount.type == 'percentage' %}
+                                نسبة مئوية
+                                {% else %}
+                                مبلغ ثابت
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if discount.type == 'percentage' %}
+                                {{ discount.value }}%
+                                {% else %}
+                                {{ "{:,.2f}".format(discount.value) }} جنيه
+                                {% endif %}
+                            </td>
+                            <td>{{ discount.end_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ discount.times_used }}</td>
+                            <td>
+                                {% if discount.is_active %}
+                                <span class="badge bg-warning">منتهي</span>
+                                {% else %}
+                                <span class="badge bg-danger">ملغي</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Discount Modal -->
+<div class="modal fade" id="addDiscountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة كوبون خصم جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addDiscountForm" onsubmit="return addDiscount(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">كود الخصم</label>
+                        <input type="text" class="form-control" name="code" required>
+                        <div class="form-text">يجب أن يكون الكود فريداً</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">نوع الخصم</label>
+                        <select class="form-select" name="type" required>
+                            <option value="percentage">نسبة مئوية</option>
+                            <option value="fixed">مبلغ ثابت</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">قيمة الخصم</label>
+                        <input type="number" step="0.01" class="form-control" name="value" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الحد الأدنى للطلب</label>
+                        <input type="number" step="0.01" class="form-control" name="min_purchase">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الحد الأقصى للخصم</label>
+                        <input type="number" step="0.01" class="form-control" name="max_discount">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">تاريخ البداية</label>
+                        <input type="date" class="form-control" name="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">تاريخ الانتهاء</label>
+                        <input type="date" class="form-control" name="end_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الحد الأقصى للاستخدامات</label>
+                        <input type="number" class="form-control" name="usage_limit">
+                        <div class="form-text">اتركه فارغاً لعدد غير محدود من الاستخدامات</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Discount Modal -->
+<div class="modal fade" id="editDiscountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعديل كوبون الخصم</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editDiscountForm" onsubmit="return updateDiscount(event)">
+                <input type="hidden" name="discount_id">
+                <div class="modal-body">
+                    <!-- Similar fields as Add Discount form -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.discounts-container {
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.badge {
+    font-size: 1em;
+    font-weight: normal;
+    padding: 8px 12px;
+}
+</style>
+
+<script>
+async function addDiscount(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch('/admin/discounts/add', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert(error.message);
+        }
+    } catch (error) {
+        alert('حدث خطأ أثناء إضافة الكوبون');
+    }
+}
+
+async function editDiscount(discountId) {
+    try {
+        const response = await fetch(`/admin/discounts/${discountId}`);
+        const discount = await response.json();
+        
+        // Fill the edit form
+        const form = document.getElementById('editDiscountForm');
+        form.discount_id.value = discount.id;
+        form.code.value = discount.code;
+        form.type.value = discount.type;
+        form.value.value = discount.value;
+        form.min_purchase.value = discount.min_purchase || '';
+        form.max_discount.value = discount.max_discount || '';
+        form.start_date.value = discount.start_date.split('T')[0];
+        form.end_date.value = discount.end_date.split('T')[0];
+        form.usage_limit.value = discount.usage_limit || '';
+        
+        // Show modal
+        new bootstrap.Modal(document.getElementById('editDiscountModal')).show();
+    } catch (error) {
+        alert('حدث خطأ أثناء تحميل بيانات الكوبون');
+    }
+}
+
+async function updateDiscount(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const discountId = form.discount_id.value;
+    
+    try {
+        const response = await fetch(`/admin/discounts/${discountId}`, {
+            method: 'PUT',
+            body: formData
+        });
+        
+        if (response.ok) {
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert(error.message);
+        }
+    } catch (error) {
+        alert('حدث خطأ أثناء تحديث الكوبون');
+    }
+}
+
+async function deactivateDiscount(discountId) {
+    if (!confirm('هل أنت متأكد من إلغاء تفعيل هذا الكوبون؟')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/discounts/${discountId}/deactivate`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert(error.message);
+        }
+    } catch (error) {
+        alert('حدث خطأ أثناء إلغاء تفعيل الكوبون');
+    }
+}
+</script>
+{% endblock %} 

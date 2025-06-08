@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}الرئيسية - Sultan Prints{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --hero-height: {{ hero_height or 85 }}vh;
+    --hero-bg-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('{% if hero_image %}{{ url_for('static', filename=hero_image) }}{% else %}{{ url_for('static', filename='images/hero-bg.png') }}{% endif %}');
+  }
+
+  .product-card-link {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      height: 100%;
+  }
+
+  .product-card-link .product-card {
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  }
+
+  .product-card-link:hover .product-card {
+      transform: translateY(-5px);
+      box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+{% set hero_bg_url = url_for('static', filename='images/hero-bg.png') %}
+{% if hero_image %}
+    {% set hero_bg_url = url_for('static', filename=hero_image) %}
+{% endif %}
+<section class="hero text-white text-center d-flex justify-content-center align-items-center" style="background: var(--hero-bg-image) no-repeat center center; background-size: cover; height: var(--hero-height);">
+    <div class="container">
+        <h1 class="display-4 fw-bold">{{ settings.hero_title or 'أطلق العنان لإبداعك' }}</h1>
+        <p class="lead my-3">{{ settings.hero_subtitle or 'صمم تيشيرتك الخاص أو اختر من بين مجموعتنا المميزة' }}</p>
+        <a href="{{ url_for('main.products') }}" class="btn btn-success btn-lg px-5 py-2">{{ settings.hero_button_text or 'تسوق الآن' }}</a>
+    </div>
+</section>
+
+<!-- About Us Section -->
+{% if settings.homepage_about_us_content %}
+<section class="about-us-snippet py-5 text-center">
+    <div class="container">
+        <h2 class="fw-bold mb-3">من نحن؟</h2>
+        <p class="lead text-muted" style="white-space: pre-wrap;">{{ settings.homepage_about_us_content }}</p>
+    </div>
+</section>
+{% endif %}
+
+<!-- Custom Design CTA Section -->
+<section class="custom-design-cta py-5 bg-light text-center">
+    <div class="container">
+        <h2 class="fw-bold mb-3">لديك تصميم فريد؟</h2>
+        <p class="lead text-muted mb-4">حوّل فكرتك إلى حقيقة واطبع تصميمك الخاص على تيشيرت عالي الجودة.</p>
+        <a href="{{ url_for('main.custom_design') }}" class="btn btn-primary btn-lg fw-bold px-5">
+            <i class="fas fa-palette me-2"></i> صمم تيشيرتك الآن
+        </a>
+    </div>
+</section>
+
+<!-- Categories Strip -->
+<div class="categories-strip py-3 px-2 bg-light border-bottom mb-4">
+  <div class="container">
+    <div class="d-flex flex-nowrap overflow-auto gap-3 align-items-center">
+      <a href="{{ url_for('main.products', category='palestine') }}" class="category-link btn btn-outline-success rounded-pill px-4">فلسطين</a>
+      <a href="{{ url_for('main.products', category='trending') }}" class="category-link btn btn-outline-dark rounded-pill px-4">تريند</a>
+      <a href="{{ url_for('main.products', category='men') }}" class="category-link btn btn-outline-dark rounded-pill px-4">رجالي</a>
+      <a href="{{ url_for('main.products', category='women') }}" class="category-link btn btn-outline-dark rounded-pill px-4">نسائي</a>
+      <a href="{{ url_for('main.products', category='kids') }}" class="category-link btn btn-outline-dark rounded-pill px-4">أطفال</a>
+      <a href="{{ url_for('main.products') }}" class="category-link btn btn-outline-dark rounded-pill px-4">الكل</a>
+    </div>
+  </div>
+</div>
+
+<!-- Product Grid -->
+<section class="product-grid-section py-5 bg-light">
+  <div class="container">
+    <h2 class="mb-4 fw-bold" style="font-family:'Poppins','Inter','Cairo',sans-serif;">منتجات مميزة</h2>
+    <div class="row g-4">
+      {% for product in products %}
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="product-card-link">
+          <div class="card product-card h-100 border-0 shadow-sm">
+            <div class="position-relative">
+              <img src="{{ url_for('static', filename=product.image or 'images/placeholder.jpg') }}" class="card-img-top" alt="{{ product.name }}">
+              {% if false %} {# Hide is_palestine and is_trending badges as fields are not in Product model #}
+              {% if product.is_palestine %}
+              <span class="badge bg-success position-absolute top-0 start-0 m-2">فلسطين</span>
+              {% elif product.is_trending %}
+              <span class="badge bg-dark position-absolute top-0 start-0 m-2">تريند</span>
+                {% endif %}
+              {% endif %}
+            </div>
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">{{ product.name }}</h5>
+              <p class="card-text text-muted mb-2">{{ product.price }} جنيه</p>
+              <div class="mt-auto">
+                <span class="btn btn-sm btn-outline-secondary">التفاصيل</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- About Products Section -->
+{% if settings.homepage_about_products_content %}
+<section class="about-products-snippet py-5 text-center">
+    <div class="container">
+        <h2 class="fw-bold mb-3">عن منتجاتنا</h2>
+        <p class="lead text-muted" style="white-space: pre-wrap;">{{ settings.homepage_about_products_content }}</p>
+    </div>
+</section>
+{% endif %}
+
+<!-- Newsletter -->
+<section class="newsletter py-5 bg-primary text-white">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6 mb-3 mb-md-0">
+                <h3>اشترك في نشرتنا البريدية</h3>
+                <p class="mb-0">احصل على آخر العروض والتخفيضات مباشرة إلى بريدك الإلكتروني</p>
+            </div>
+            <div class="col-md-6">
+                <form class="newsletter-form d-flex">
+                    <input type="email" class="form-control me-2" placeholder="بريدك الإلكتروني">
+                    <button type="submit" class="btn btn-light">اشترك</button>
+                </form>
+                <small class="text-white-50 d-block mt-2">ملاحظة: خدمة النشرة البريدية قيد التطوير حاليًا.</small>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
