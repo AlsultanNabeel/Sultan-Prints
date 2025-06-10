@@ -23,7 +23,7 @@
     <a href="{{ url_for('admin.pages') }}" class="list-group-item list-group-item-action {% if 'pages' in request.endpoint %}active{% endif %}">
         <i class="fas fa-file-alt me-2"></i> إدارة الصفحات
     </a>
-    <a href="{{ url_for('admin._settings') }}" class="list-group-item list-group-item-action {% if '_settings' in request.endpoint %}active{% endif %}">
+    <a href="{{ url_for('admin.admin_settings') }}" class="list-group-item list-group-item-action {% if 'settings' in request.endpoint %}active{% endif %}">
         <i class="fas fa-cog me-2"></i> إعدادات الموقع
     </a>
     <a href="{{ url_for('admin.logout') }}" class="list-group-item list-group-item-action text-danger">
