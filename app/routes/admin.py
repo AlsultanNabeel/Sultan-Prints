@@ -329,56 +329,66 @@ def deactivate_discount(discount_id):
 def admin_home():
     return redirect(url_for('admin.products'))
 
-# ===== Site Settings =====
 @admin.route('/admin/settings', methods=['GET', 'POST'])
 @admin_login_required
-def _settings():
+def admin_settings():
+    """
+    Handles site-wide settings.
+    Saves all form data as key-value pairs in the Setting model.
+    """
+    # The form is now correctly imported from app.forms
     form = SettingsForm()
+
     if form.validate_on_submit():
-        # Handle hero image upload
-        if form.hero_image.data:
-            file = form.hero_image.data
-            image_filename = save_image(file, 'site')
-            
-            setting = Setting.query.filter_by(key='hero_image').first()
-            if setting:
-                setting.value = image_filename
-            else:
-                setting = Setting(key='hero_image', value=image_filename)
+        for field_name, value in form.data.items():
+            if field_name in ['csrf_token', 'submit']:
+                continue
+
+            setting = Setting.query.filter_by(key=field_name).first()
+            if not setting:
+                setting = Setting(key=field_name)
                 db.session.add(setting)
 
-        # Handle text-based settings
-        fields_to_update = [
-            'hero_title', 'hero_subtitle', 'hero_button_text', 'hero_height', 
-            'footer_about_us_content', 'contact_email', 'phone_number', 'address', 
-            'facebook_url', 'instagram_url', 'tiktok_url', 'whatsapp_number',
-            'homepage_about_us_content', 'homepage_about_products_content'
-        ]
+            # Handle hero image upload separately
+            if field_name == 'hero_image':
+                if value and allowed_file(value.filename):
+                    try:
+                        filename = save_image(value, 'hero')
+                        setting.value = filename
+                    except Exception as e:
+                        flash(f'خطأ في رفع صورة الهيرو: {e}', 'danger')
+                # If no new image or invalid file, we don't update the DB value for the image
+                # This prevents overwriting an existing image with None
+            else:
+                # For all other fields, save the value
+                if value is not None:
+                    setting.value = str(value)
+                else:
+                    setting.value = '' # Save empty string for optional fields
         
-        for field_name in fields_to_update:
-            key = field_name
-            value = getattr(form, field_name).data
-            
-            setting = Setting.query.filter_by(key=key).first()
-            if setting:
-                setting.value = value
-            else:
-                setting = Setting(key=key, value=value)
-                db.session.add(setting)
-                
-        db.session.commit()
-        flash('تم تحديث الإعدادات بنجاح.', 'success')
-        return redirect(url_for('admin._settings'))
+        try:
+            db.session.commit()
+            flash('تم تحديث الإعدادات بنجاح.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ أثناء حفظ الإعدادات: {e}', 'danger')
 
-    # Populate form with existing settings for GET request
-    settings_list = Setting.query.all()
-    settings = {setting.key: setting.value for setting in settings_list}
-    form.process(data=settings)
+        return redirect(url_for('admin.admin_settings'))
 
-    # Get current hero image to display it
-    current_hero_image = settings.get('hero_image')
+    elif request.method == 'GET':
+        settings_db = Setting.query.all()
+        # Create a dictionary of settings to populate the form
+        settings_dict = {s.key: s.value for s in settings_db}
+        form.process(data=settings_dict)
+        
+        # Handle type conversion for specific fields after processing
+        if form.hero_height.data:
+            try:
+                form.hero_height.data = int(form.hero_height.data)
+            except (ValueError, TypeError):
+                form.hero_height.data = 75  # Default value on error
 
-    return render_template('admin/settings.html', form=form, current_hero_image=current_hero_image)
+    return render_template('admin/settings.html', form=form, title="إعدادات الموقع")
 
 
 # ===== Manageable Pages =====
