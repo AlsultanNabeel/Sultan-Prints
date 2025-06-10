@@ -3,8 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sultan Prints{% endblock %}</title>
+    <title>{{ title or settings.site_title or 'متجر السلطان' }}</title>
     <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+    
+    <!-- Meta tags for CSRF protection -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- Additional Header Scripts (e.g., Google Analytics, Google Verification) -->
+    {% if settings.header_scripts %}
+        {{ settings.header_scripts | safe }}
+    {% endif %}
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
     
     <!-- Preload critical assets -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Oswald:wght@700&display=swap" as="style">
@@ -21,10 +32,7 @@
     
     <!-- Cache control -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    
-    <!-- Meta tags for CSRF protection -->
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    
+
     {% block extra_css %}{% endblock %}
 </head>
 <body class="d-flex flex-column min-vh-100 {% if active_announcements %}with-announcement-bar{% endif %}">

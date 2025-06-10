@@ -19,7 +19,7 @@
                     </div>
                     <div class="card-body">
                         <p class="text-muted">قم بتعديل الإعدادات العامة للموقع مثل معلومات التواصل وروابط الشبكات الاجتماعية.</p>
-                        <form method="POST" action="{{ url_for('admin._settings') }}" enctype="multipart/form-data">
+                        <form method="POST" action="{{ url_for('admin.admin_settings') }}" enctype="multipart/form-data">
                             {{ form.hidden_tag() }}
                             
                             <h5 class="mt-4 mb-3">قسم الهيرو (أعلى الصفحة الرئيسية)</h5>
@@ -48,10 +48,10 @@
                                         {% endfor %}
                                     </div>
                                 {% endif %}
-                                {% if current_hero_image %}
+                                {% if hero_image_path %}
                                     <div class="mt-2">
                                         <small>الصورة الحالية:</small>
-                                        <img src="{{ url_for('static', filename=current_hero_image) }}" alt="Hero Image" style="max-width: 200px; height: auto; display: block; margin-top: 5px; border-radius: 6px;">
+                                        <img src="{{ url_for('static', filename=hero_image_path) }}" alt="Hero Image" style="max-width: 200px; height: auto; display: block; margin-top: 5px; border-radius: 6px;">
                                     </div>
                                 {% endif %}
                             </div>

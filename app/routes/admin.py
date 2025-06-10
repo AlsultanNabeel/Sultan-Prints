@@ -336,7 +336,6 @@ def admin_settings():
     Handles site-wide settings.
     Saves all form data as key-value pairs in the Setting model.
     """
-    # The form is now correctly imported from app.forms
     form = SettingsForm()
 
     if form.validate_on_submit():
@@ -353,18 +352,16 @@ def admin_settings():
             if field_name == 'hero_image':
                 if value and allowed_file(value.filename):
                     try:
-                        filename = save_image(value, 'hero')
+                        # The save_image utility now returns the path relative to 'static/'
+                        filename = save_image(value, 'hero') 
                         setting.value = filename
                     except Exception as e:
                         flash(f'خطأ في رفع صورة الهيرو: {e}', 'danger')
-                # If no new image or invalid file, we don't update the DB value for the image
-                # This prevents overwriting an existing image with None
             else:
-                # For all other fields, save the value
                 if value is not None:
                     setting.value = str(value)
                 else:
-                    setting.value = '' # Save empty string for optional fields
+                    setting.value = '' 
         
         try:
             db.session.commit()
@@ -375,20 +372,24 @@ def admin_settings():
 
         return redirect(url_for('admin.admin_settings'))
 
-    elif request.method == 'GET':
-        settings_db = Setting.query.all()
-        # Create a dictionary of settings to populate the form
-        settings_dict = {s.key: s.value for s in settings_db}
-        form.process(data=settings_dict)
-        
-        # Handle type conversion for specific fields after processing
-        if form.hero_height.data:
-            try:
-                form.hero_height.data = int(form.hero_height.data)
-            except (ValueError, TypeError):
-                form.hero_height.data = 75  # Default value on error
+    # Logic for GET request
+    hero_image_path = None
+    settings_db = Setting.query.all()
+    settings_dict = {s.key: s.value for s in settings_db}
+    
+    # Get the hero image path to pass to the template
+    if 'hero_image' in settings_dict:
+        hero_image_path = settings_dict['hero_image']
 
-    return render_template('admin/settings.html', form=form, title="إعدادات الموقع")
+    form.process(data=settings_dict)
+    
+    if form.hero_height.data:
+        try:
+            form.hero_height.data = int(form.hero_height.data)
+        except (ValueError, TypeError):
+            form.hero_height.data = 75
+
+    return render_template('admin/settings.html', form=form, title="إعدادات الموقع", hero_image_path=hero_image_path)
 
 
 # ===== Manageable Pages =====
