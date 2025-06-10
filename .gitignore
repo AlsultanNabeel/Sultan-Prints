@@ -20,6 +20,8 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -52,9 +54,16 @@ coverage.xml
 *.mo
 *.pot
 
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
 # Flask stuff:
 instance/
 .webassets-cache
+.flask_cache/
 
 # Scrapy stuff:
 .scrapy
@@ -78,11 +87,11 @@ ipython_config.py
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
 #   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+#   having no cross-platform support, pipenv may install different versions of packages.
+#   To avoid dependencies conflict between different platforms, please uncomment the following line.
+# Pipfile.lock
 
-# PEP 582; used by PDM, PEP 582 compatible tools and Openverse.
+# PEP 582; __pypackages__
 __pypackages__/
 
 # Celery stuff
@@ -117,4 +126,30 @@ venv.bak/
 dmypy.json
 
 # Pyre type checker
-.pyre/ 
+.pyre/
+
+# macOS files
+.DS_Store
+
+# Custom logs folder
+/logs/
+
+# Temporary run file (if used)
+run.py
+/temp_uploads/
+.webassets-cache/
+
+# IDE settings
+.idea/
+.vscode/
+
+# Config files with secrets
+config.py
+.env
+migrations/
+
+# SQLite database files
+*.sqlite3
+dev.db
+site.db
+app.db 
