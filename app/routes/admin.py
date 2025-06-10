@@ -1,13 +1,14 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
-from app.models import Product, Design, Order, OrderStatus, Discount, Setting, Page, Announcement, FAQ
-from app.forms import ProductForm, DiscountForm, AdminLoginForm, PageForm, OrderStatusForm, SettingsForm, AnnouncementForm, FAQForm
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app, jsonify
+from app.models import Product, Design, Order, OrderStatus, Setting, Page, Announcement, FAQ
+from app.forms import ProductForm, AdminLoginForm, OrderStatusForm, SettingsForm, PageForm, AnnouncementForm, FAQForm, DiscountForm
 from app import db
-import json
+from app.utils import save_image
+from app.services.discounts import Discount
 import os
 from datetime import datetime
+import json
 from werkzeug.utils import secure_filename
-from app.utils import allowed_file, save_image
-from app.utils import log_event
+from app.utils import allowed_file, log_event
 import shutil
 
 admin = Blueprint('admin', __name__)
@@ -268,30 +269,52 @@ def order_detail(order_id):
 @admin.route('/admin/discounts')
 @admin_login_required
 def discounts():
-    discounts = Discount.query.order_by(Discount.created_at.desc()).all()
-    return render_template('admin/discounts.html', discounts=discounts)
-
-@admin.route('/admin/add_discount', methods=['GET', 'POST'])
-@admin_login_required
-def add_discount():
     form = DiscountForm()
-    if form.validate_on_submit():
-        discount = Discount(
-            code=form.code.data.upper(),
-            type=form.type.data,
-            value=form.value.data,
-            min_purchase=form.min_purchase.data,
-            max_discount=form.max_discount.data,
-            usage_limit=form.usage_limit.data,
-            start_date=datetime.strptime(form.start_date.data, '%Y-%m-%d'),
-            end_date=datetime.strptime(form.end_date.data, '%Y-%m-%d'),
-            is_active=form.is_active.data
-        )
-        db.session.add(discount)
-        db.session.commit()
-        flash('تم إضافة كود الخصم بنجاح', 'success')
-        return redirect(url_for('admin.discounts'))
-    return render_template('admin/add_discount.html', form=form)
+    now = datetime.utcnow()
+    
+    active_discounts = Discount.query.filter(
+        Discount.is_active == True,
+        Discount.end_date >= now
+    ).order_by(Discount.end_date.asc()).all()
+    
+    inactive_discounts = Discount.query.filter(
+        (Discount.is_active == False) | (Discount.end_date < now)
+    ).order_by(Discount.end_date.desc()).all()
+
+    return render_template(
+        'admin/discounts.html', 
+        active_discounts=active_discounts, 
+        inactive_discounts=inactive_discounts,
+        form=form
+    )
+
+@admin.route('/admin/discounts/add', methods=['POST'])
+@admin_login_required
+def add_discount_api():
+    form = DiscountForm(request.form)
+    if form.validate():
+        try:
+            new_discount = Discount(
+                code=form.code.data.upper(),
+                type=form.type.data,
+                value=form.value.data,
+                min_purchase=form.min_purchase.data if form.min_purchase.data is not None else None,
+                max_discount=form.max_discount.data if form.max_discount.data is not None else None,
+                usage_limit=form.usage_limit.data if form.usage_limit.data is not None else None,
+                start_date=datetime.strptime(form.start_date.data, '%Y-%m-%d'),
+                end_date=datetime.strptime(form.end_date.data, '%Y-%m-%d'),
+                is_active=True
+            )
+            db.session.add(new_discount)
+            db.session.commit()
+            return jsonify({'message': 'تم إضافة الكوبون بنجاح'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'message': f'حدث خطأ: {str(e)}'}), 500
+    else:
+        # جمع الأخطاء من النموذج
+        errors = {field.name: field.errors[0] for field in form if field.errors}
+        return jsonify({'message': 'بيانات غير صالحة', 'errors': errors}), 400
 
 @admin.route('/admin/deactivate_discount/<int:discount_id>', methods=['POST'])
 @admin_login_required
@@ -328,7 +351,7 @@ def _settings():
         fields_to_update = [
             'hero_title', 'hero_subtitle', 'hero_button_text', 'hero_height', 
             'footer_about_us_content', 'contact_email', 'phone_number', 'address', 
-            'facebook_url', 'instagram_url', 'twitter_url', 'whatsapp_number',
+            'facebook_url', 'instagram_url', 'tiktok_url', 'whatsapp_number',
             'homepage_about_us_content', 'homepage_about_products_content'
         ]
         

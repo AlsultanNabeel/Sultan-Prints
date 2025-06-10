@@ -1,7 +1,8 @@
-from models import db
+from app import db
 from datetime import datetime
 
 class Discount(db.Model):
+    __tablename__ = 'discounts'
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(20), unique=True, nullable=False)
     type = db.Column(db.String(20), nullable=False)  # percentage, fixed
@@ -50,6 +51,21 @@ class Discount(db.Model):
         return min(discount, total_amount)  # Don't exceed total amount
 
 class DiscountManager:
+    @staticmethod
+    def validate_coupon(code, total_amount):
+        """Validate a discount code and return the discount amount without applying it."""
+        discount = Discount.query.filter_by(code=code.upper()).first()
+        if not discount:
+            return 0, "كود الخصم غير صالح"
+        
+        is_valid, message = discount.is_valid(total_amount)
+        if not is_valid:
+            return 0, message
+        
+        discount_amount = discount.calculate_discount(total_amount)
+        
+        return discount_amount, "تم التحقق من الكود بنجاح"
+
     @staticmethod
     def create_discount(code, type, value, start_date, end_date, **kwargs):
         """Create a new discount"""

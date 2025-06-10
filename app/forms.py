@@ -107,7 +107,7 @@ class SettingsForm(FlaskForm):
                                    validators=[Optional(), Length(max=50)],
                                    render_kw={"class": "form-control"},
                                    description="النص الذي يظهر على الزر في قسم الهيرو.")
-    hero_image = FileField('صورة الهيرو الرئيسية', validators=[FileAllowed(['jpg', 'png', 'jpeg'], 'الصور فقط!')])
+    hero_image = FileField('صورة الهيرو الرئيسية', validators=[Optional(), FileAllowed(['jpg', 'png', 'jpeg'], 'الصور فقط!')])
     hero_height = IntegerField('ارتفاع قسم الهيرو (vh)', 
                              validators=[Optional(), NumberRange(min=30, max=100)], 
                              description="أدخل رقمًا بين 30 و 100. هذا يمثل النسبة المئوية لارتفاع الشاشة.",
@@ -126,7 +126,7 @@ class SettingsForm(FlaskForm):
     address = StringField('العنوان')
     facebook_url = StringField('رابط فيسبوك')
     instagram_url = StringField('رابط انستغرام')
-    twitter_url = StringField('رابط تويتر')
+    tiktok_url = StringField('رابط تيكتوك')
     whatsapp_number = StringField('رقم واتساب')
     submit = SubmitField('حفظ الإعدادات')
 

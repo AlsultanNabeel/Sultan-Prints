@@ -189,6 +189,35 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Order Summary -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">الملخص المالي</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>إجمالي المنتجات</span>
+                                <strong>{{ "{:,.2f}".format(order.total_amount + order.discount_amount - 50 if (order.total_amount + order.discount_amount - 50) < 500 else order.total_amount + order.discount_amount) }} جنيه</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>رسوم الشحن</span>
+                                <strong>{{ "{:,.2f}".format(50 if (order.total_amount + order.discount_amount - 50) < 500 else 0) }} جنيه</strong>
+                            </li>
+                            {% if order.discount_code %}
+                            <li class="list-group-item d-flex justify-content-between text-success">
+                                <span>الخصم ({{ order.discount_code }})</span>
+                                <strong>- {{ "{:,.2f}".format(order.discount_amount) }} جنيه</strong>
+                            </li>
+                            {% endif %}
+                            <li class="list-group-item d-flex justify-content-between h5">
+                                <strong>الإجمالي النهائي</strong>
+                                <strong>{{ "{:,.2f}".format(order.total_amount) }} جنيه</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

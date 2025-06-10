@@ -76,6 +76,8 @@ class Order(db.Model):
     payment_method = db.Column(db.String(32), nullable=False)
     vodafone_receipt = db.Column(db.String(255), nullable=True)
     total_amount = db.Column(db.Float, nullable=False, default=0)
+    discount_code = db.Column(db.String(20), nullable=True)
+    discount_amount = db.Column(db.Float, nullable=True, default=0)
     status = db.Column(db.String(32), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     order_items = db.relationship('OrderItem', backref='order', lazy='dynamic', cascade="all, delete-orphan")
@@ -127,40 +129,6 @@ class Contact(db.Model):
     phone = db.Column(db.String(20))
     message = db.Column(db.Text, nullable=False)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class Discount(db.Model):
-    """نموذج الخصم"""
-    __tablename__ = 'discounts'
-    id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(50), unique=True, nullable=False)
-    percentage = db.Column(db.Float, nullable=False)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def is_valid(self, total_amount):
-        """Check if discount is valid"""
-        now = datetime.utcnow()
-        if not self.is_active:
-            return False, "هذا الكود غير نشط"
-        if now < self.start_date:
-            return False, "لم يبدأ وقت هذا الكود بعد"
-        if now > self.end_date:
-            return False, "انتهت صلاحية هذا الكود"
-        if self.usage_limit and self.times_used >= self.usage_limit:
-            return False, "تم استنفاد الحد الأقصى لاستخدام هذا الكود"
-        if self.min_purchase and total_amount < self.min_purchase:
-            return False, f"الحد الأدنى للطلب {self.min_purchase} جنيه"
-        return True, "الكود صالح"
-
-    def calculate_discount(self, total_amount):
-        """Calculate discount amount"""
-        if self.type == 'percentage':
-            discount = total_amount * (self.value / 100)
-            if self.max_discount:
-                discount = min(discount, self.max_discount)
-        else:  # fixed
-            discount = self.value
-        return min(discount, total_amount)  # Don't exceed total amount
 
 class Cart(db.Model):
     """سلة التسوق"""

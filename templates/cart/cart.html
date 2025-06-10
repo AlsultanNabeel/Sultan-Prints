@@ -89,31 +89,21 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-3">
                             <span>إجمالي المنتجات</span>
-                            <span class="fw-bold">{{ total }} جنيه</span>
+                            <span class="fw-bold" id="products-total">{{ total|round(2) }} جنيه</span>
                         </div>
                         <div class="d-flex justify-content-between mb-3">
                             <span>رسوم الشحن</span>
-                            <span class="fw-bold">{{ 0 if total > 500 else 50 }} جنيه</span>
+                            <span class="fw-bold" id="shipping-cost">{{ 50 if total <= 500 else 0 }} جنيه</span>
                         </div>
                         <hr>
                         <div class="d-flex justify-content-between mb-3">
                             <span class="fw-bold">المجموع الكلي</span>
-                            <span class="fw-bold text-primary h5">{{ total + (0 if total > 500 else 50) }} جنيه</span>
+                            <span class="fw-bold text-primary h5" id="final-total">{{ (total + (50 if total <= 500 else 0))|round(2) }} جنيه</span>
                         </div>
                         <div class="d-grid mt-4">
                             <a href="{{ url_for('cart.checkout') }}" class="btn btn-primary btn-lg">
                                 المتابعة للدفع
                             </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="mb-3">لديك كوبون خصم؟</h5>
-                        <div class="input-group">
-                            <input type="text" class="form-control" placeholder="أدخل كود الخصم">
-                            <button class="btn btn-outline-dark" type="button">تطبيق</button>
                         </div>
                     </div>
                 </div>
@@ -133,7 +123,7 @@
                             <div class="col-md-4 mb-3 mb-md-0">
                                 <i class="fas fa-money-bill-wave fa-2x text-primary mb-2"></i>
                                 <h5>دفع آمن</h5>
-                                <p class="mb-0 small">دفع عند الاستلام أو فودافون كاش</p>
+                                <p class="mb-0 small"> سهولة الدفع وكثرة الخيارات</p>
                             </div>
                             <div class="col-md-4">
                                 <i class="fas fa-headset fa-2x text-primary mb-2"></i>

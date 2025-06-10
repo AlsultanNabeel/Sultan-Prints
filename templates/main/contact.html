@@ -68,10 +68,11 @@
                     <div class="social-media mt-4">
                         <h5 class="mb-3">تابعنا</h5>
                         <div class="d-flex">
-                          {% if settings.facebook_url %}<a href="{{ settings.facebook_url or '#' }}" target="_blank" class="social-icon-contact"><i class="fab fa-facebook-f"></i></a>{% endif %}
-                          {% if settings.instagram_url %}<a href="{{ settings.instagram_url or '#' }}" target="_blank" class="social-icon-contact"><i class="fab fa-instagram"></i></a>{% endif %}
-                          {% if settings.twitter_url %}<a href="{{ settings.twitter_url or '#' }}" target="_blank" class="social-icon-contact"><i class="fab fa-twitter"></i></a>{% endif %}
-                           {% if settings.whatsapp_number %}<a href="https://wa.me/{{ settings.whatsapp_number }}" target="_blank" class="social-icon-contact"><i class="fab fa-whatsapp"></i></a>{% endif %}
+                          {% if settings.facebook_url %}<a href="{{ settings.facebook_url or '#' }}" target="_blank" rel="noopener noreferrer" class="social-icon-contact"><i class="fab fa-facebook-f"></i></a>{% endif %}
+                          {% if settings.instagram_url %}<a href="{{ settings.instagram_url or '#' }}" target="_blank" rel="noopener noreferrer" class="social-icon-contact"><i class="fab fa-instagram"></i></a>{% endif %}
+                          {% if settings.twitter_url %}<a href="{{ settings.twitter_url or '#' }}" target="_blank" rel="noopener noreferrer" class="social-icon-contact"><i class="fab fa-twitter"></i></a>{% endif %}
+                          {% if settings.tiktok_url %}<a href="{{ settings.tiktok_url or '#' }}" target="_blank" rel="noopener noreferrer" class="social-icon-contact"><i class="fab fa-tiktok"></i></a>{% endif %}
+                           {% if settings.whatsapp_number %}<a href="https://wa.me/{{ settings.whatsapp_number }}" target="_blank" rel="noopener noreferrer" class="social-icon-contact"><i class="fab fa-whatsapp"></i></a>{% endif %}
                         </div>
                     </div>
                 </div>

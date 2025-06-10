@@ -16,6 +16,7 @@
           <li class="mb-2"><a href="{{ url_for('main.products') }}" class="text-white-50">المتجر</a></li>
           <li class="mb-2"><a href="{{ url_for('main.show_page', slug='about-us') }}" class="text-white-50">من نحن</a></li>
           <li class="mb-2"><a href="{{ url_for('main.contact') }}" class="text-white-50">تواصل معنا</a></li>
+          <li class="mb-2"><a href="{{ url_for('main.show_page', slug='terms andconditions') }}" class="text-white-50">الشروط والأحكام</a></li>
         </ul>
       </div>
 
@@ -57,7 +58,10 @@
           {% if settings.twitter_url %}
             <a href="{{ settings.twitter_url or '#' }}" target="_blank" class="social-icon"><i class="fab fa-twitter"></i></a>
           {% endif %}
-           {% if settings.whatsapp_number %}
+          {% if settings.tiktok_url %}
+            <a href="{{ settings.tiktok_url or '#' }}" target="_blank" class="social-icon"><i class="fab fa-tiktok"></i></a>
+          {% endif %}
+          {% if settings.whatsapp_number %}
             <a href="https://wa.me/{{ settings.whatsapp_number }}" target="_blank" class="social-icon"><i class="fab fa-whatsapp"></i></a>
           {% endif %}
         </div>
@@ -73,7 +77,7 @@
              <ul class="list-inline mb-0">
                 <li class="list-inline-item"><a href="{{ url_for('main.show_page', slug='privacy-policy') }}" class="text-white-50">سياسة الخصوصية</a></li>
                 <li class="list-inline-item">|</li>
-                <li class="list-inline-item"><a href="{{ url_for('main.show_page', slug='terms-and-conditions') }}" class="text-white-50">الشروط والأحكام</a></li>
+                <li class="list-inline-item"><a href="{{ url_for('main.show_page', slug='Terms andConditions') }}" class="text-white-50">الشروط والأحكام</a></li>
              </ul>
         </div>
     </div>

@@ -12,7 +12,7 @@ class Config:
         # On Render, DATABASE_URL is for PostgreSQL, but SQLAlchemy needs 'postgresql://'
         db_url = db_url.replace('postgres://', 'postgresql://', 1)
     
-    SQLALCHEMY_DATABASE_URI = db_url or 'mysql+pymysql://root:password@localhost/tshirt_store?charset=utf8mb4'
+    SQLALCHEMY_DATABASE_URI = db_url or 'mysql+pymysql://root:@localhost/tshirt_store?charset=utf8mb4'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Upload Settings

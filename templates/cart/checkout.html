@@ -134,33 +134,51 @@
                             <h4 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>ملخص الطلب</h4>
                         </div>
                         <div class="card-body">
+                            <!-- Items -->
                             <ul class="list-group list-group-flush">
                                 {% for item in cart_items %}
                                 <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                                     <div>
                                         <h6 class="my-0">{{ item.product.name }}</h6>
-                                        <small class="text-muted">الكمية: {{ item.quantity }} | اللون: {{ item.color }} | الحجم: {{ item.size }}</small>
+                                        <small class="text-muted">الكمية: {{ item.quantity }}</small>
                                     </div>
-                                    <span class="text-muted">{{ "{:,.2f}".format(item.subtotal) }} جنيه</span>
+                                    <span class="text-muted">{{ (item.product.price * item.quantity)|round(2) }} جنيه</span>
                                 </li>
                                 {% endfor %}
                             </ul>
                             
-                            <ul class="list-group list-group-flush mt-3">
+                            <hr class="my-3">
+
+                            <!-- Totals -->
+                            <ul class="list-group list-group-flush">
                                 <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                                     <span>إجمالي المنتجات</span>
-                                    <strong>{{ "{:,.2f}".format(products_total) }} جنيه</strong>
+                                    <strong>{{ products_total|round(2) }} جنيه</strong>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span>تكلفة الشحن</span>
-                                    <strong>{{ "{:,.2f}".format(shipping_cost) if shipping_cost > 0 else 'مجاني' }}</strong>
+                                    <span>رسوم الشحن</span>
+                                    <strong id="shipping-cost">{{ shipping_cost|round(2) }} جنيه</strong>
                                 </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 fs-5">
-                                    <span>الإجمالي النهائي</span>
-                                    <strong class="text-primary">{{ "{:,.2f}".format(final_total) }} جنيه</strong>
+                                <li id="discount-row" class="list-group-item d-flex justify-content-between align-items-center px-0 text-success" style="display: none;">
+                                    <span>الخصم</span>
+                                    <strong id="discount-amount"></strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 h5">
+                                    <strong>المجموع الكلي</strong>
+                                    <strong class="text-primary" id="final-total">{{ final_total|round(2) }} جنيه</strong>
                                 </li>
                             </ul>
                         </div>
+
+                        <!-- Coupon Code -->
+                        <div class="card-body border-top">
+                            <div class="d-flex">
+                                <input type="text" class="form-control me-2" id="coupon-code" placeholder="أدخل كود الخصم">
+                                <button class="btn btn-secondary" type="button" onclick="applyCoupon(event)">تطبيق</button>
+                            </div>
+                            <div id="coupon-message" class="mt-2 small"></div>
+                        </div>
+                        
                         <div class="card-footer bg-white p-3">
                              {{ form.submit(class="btn btn-primary btn-lg w-100", value="تأكيد الطلب الآن") }}
                         </div>
@@ -204,6 +222,68 @@ document.addEventListener('DOMContentLoaded', function() {
     if (initiallyChecked) {
         updateSelection(initiallyChecked.closest('.payment-option'));
     }
+
+    // Attach submit event to the main form
+    document.getElementById('checkout-form').addEventListener('submit', function(e) {
+        const selectedPayment = document.querySelector('input[name="payment_method"]:checked').value;
+        if (selectedPayment === 'vodafone_cash') {
+            const receiptInput = document.getElementById('vodafone_receipt');
+            if (!receiptInput.files.length) {
+                e.preventDefault();
+                alert('يرجى رفع إيصال الدفع عند اختيار فودافون كاش.');
+            }
+        }
+    });
 });
+
+async function applyCoupon(event) {
+    event.preventDefault();
+    const couponCode = document.getElementById('coupon-code').value;
+    const messageEl = document.getElementById('coupon-message');
+    const productsTotal = parseFloat('{{ products_total }}');
+    const shippingCost = parseFloat(document.getElementById('shipping-cost').textContent);
+
+    if (!couponCode) {
+        messageEl.textContent = 'يرجى إدخال كود الخصم.';
+        messageEl.className = 'mt-2 small text-danger';
+        return;
+    }
+
+    try {
+        const response = await fetch('/cart/apply_coupon', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ coupon_code: couponCode })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            messageEl.textContent = data.message;
+            messageEl.className = 'mt-2 small text-success';
+            
+            // Update summary
+            const discountAmount = data.discount_amount;
+            document.getElementById('discount-amount').textContent = `- ${discountAmount.toFixed(2)} جنيه`;
+            document.getElementById('discount-row').style.display = 'flex';
+            
+            const newFinalTotal = (productsTotal + shippingCost) - discountAmount;
+            document.getElementById('final-total').textContent = `${newFinalTotal.toFixed(2)} جنيه`;
+            
+        } else {
+            messageEl.textContent = data.error;
+            messageEl.className = 'mt-2 small text-danger';
+            
+            // Hide discount row if there was a previous discount
+            document.getElementById('discount-row').style.display = 'none';
+            document.getElementById('final-total').textContent = `${(productsTotal + shippingCost).toFixed(2)} جنيه`;
+        }
+    } catch (error) {
+        messageEl.textContent = 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
+        messageEl.className = 'mt-2 small text-danger';
+    }
+}
 </script>
 {% endblock %}

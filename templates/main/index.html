@@ -24,6 +24,14 @@
       transform: translateY(-5px);
       box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
   }
+  .hero-text-container {
+      background: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px); /* For Safari */
+      border-radius: 15px;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+  }
 </style>
 {% endblock %}
 
@@ -35,9 +43,11 @@
 {% endif %}
 <section class="hero text-white text-center d-flex justify-content-center align-items-center" style="background: var(--hero-bg-image) no-repeat center center; background-size: cover; height: var(--hero-height);">
     <div class="container">
-        <h1 class="display-4 fw-bold">{{ settings.hero_title or 'أطلق العنان لإبداعك' }}</h1>
-        <p class="lead my-3">{{ settings.hero_subtitle or 'صمم تيشيرتك الخاص أو اختر من بين مجموعتنا المميزة' }}</p>
-        <a href="{{ url_for('main.products') }}" class="btn btn-success btn-lg px-5 py-2">{{ settings.hero_button_text or 'تسوق الآن' }}</a>
+        <div class="hero-text-container">
+            <h1 class="display-4 fw-bold">{{ settings.hero_title or 'أطلق العنان لإبداعك' }}</h1>
+            <p class="lead my-3">{{ settings.hero_subtitle or 'صمم تيشيرتك الخاص أو اختر من بين مجموعتنا المميزة' }}</p>
+            <a href="{{ url_for('main.products') }}" class="btn btn-success btn-lg px-5 py-2">{{ settings.hero_button_text or 'تسوق الآن' }}</a>
+        </div>
     </div>
 </section>
 

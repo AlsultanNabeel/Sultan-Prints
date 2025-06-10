@@ -156,6 +156,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="addDiscountForm" onsubmit="return addDiscount(event)">
+                {{ form.csrf_token }}
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">كود الخصم</label>
@@ -257,15 +258,24 @@ async function addDiscount(event) {
             body: formData
         });
         
+        const result = await response.json();
+
         if (response.ok) {
+            alert(result.message);
             location.reload();
         } else {
-            const error = await response.json();
-            alert(error.message);
+            let errorMessage = result.message;
+            if (result.errors) {
+                const errorDetails = Object.entries(result.errors).map(([field, msg]) => `${field}: ${msg}`).join('\\n');
+                errorMessage += `\\n\\n${errorDetails}`;
+            }
+            alert(errorMessage);
         }
     } catch (error) {
-        alert('حدث خطأ أثناء إضافة الكوبون');
+        console.error('Fetch Error:', error);
+        alert('حدث خطأ فني أثناء إضافة الكوبون. يرجى مراجعة الكونسول.');
     }
+    return false;
 }
 
 async function editDiscount(discountId) {
