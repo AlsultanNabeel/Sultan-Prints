@@ -128,6 +128,9 @@ class SettingsForm(FlaskForm):
     instagram_url = StringField('رابط انستغرام')
     tiktok_url = StringField('رابط تيكتوك')
     whatsapp_number = StringField('رقم واتساب')
+    header_scripts = TextAreaField('أكواد إضافية في الهيدر (Header Scripts)', 
+                                 render_kw={"class": "form-control", "rows": 5},
+                                 description="أضف هنا أي أكواد تتبع مثل Google Analytics أو Facebook Pixel. سيتم إضافتها قبل إغلاق وسم </head>.")
     submit = SubmitField('حفظ الإعدادات')
 
 class PageForm(FlaskForm):
