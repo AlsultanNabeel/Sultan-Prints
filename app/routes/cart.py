@@ -225,8 +225,9 @@ def checkout():
 
         db.session.commit()
 
-        # Send order confirmation email to the customer
+        # Send emails after successful commit
         try:
+            # Send order confirmation email to the customer
             subject = f"تأكيد طلبك من Sultan Prints (رقم الطلب: #{order.reference})"
             email_body = render_template(
                 'emails/order_confirmation_customer.html', 
