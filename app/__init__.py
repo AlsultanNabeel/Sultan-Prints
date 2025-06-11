@@ -7,6 +7,7 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
 from markupsafe import escape, Markup
+from datetime import datetime
 
 pymysql.install_as_MySQLdb()
 
@@ -39,6 +40,10 @@ def create_app(config_class=Config):
     commands.init_app(app)
 
     # Context Processors
+    @app.context_processor
+    def inject_current_year():
+        return {'current_year': datetime.utcnow().year}
+        
     from .utils import inject_settings, inject_cart_item_count
     app.context_processor(inject_settings)
     app.context_processor(inject_cart_item_count)
