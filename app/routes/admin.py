@@ -332,64 +332,46 @@ def admin_home():
 @admin.route('/admin/settings', methods=['GET', 'POST'])
 @admin_login_required
 def admin_settings():
-    """
-    Handles site-wide settings.
-    Saves all form data as key-value pairs in the Setting model.
-    """
     form = SettingsForm()
-
     if form.validate_on_submit():
-        for field_name, value in form.data.items():
-            if field_name in ['csrf_token', 'submit']:
-                continue
-            
-            setting = Setting.query.filter_by(key=field_name).first()
-            if not setting:
-                setting = Setting(key=field_name)
-                db.session.add(setting)
-
-            # Handle hero image upload separately
-            if field_name == 'hero_image':
-                if value and allowed_file(value.filename):
-                    try:
-                        # The save_image utility now returns the path relative to 'static/'
-                        filename = save_image(value, 'hero') 
-                        setting.value = filename
-                    except Exception as e:
-                        flash(f'خطأ في رفع صورة الهيرو: {e}', 'danger')
-            else:
-                if value is not None:
-                    setting.value = str(value)
+        # Handle file upload for hero image
+        if form.hero_image.data:
+            try:
+                filename = save_image(form.hero_image.data, 'settings')
+                setting = Setting.query.filter_by(key='hero_image').first()
+                if setting:
+                    setting.value = filename
                 else:
-                    setting.value = '' 
+                    db.session.add(Setting(key='hero_image', value=filename))
+            except Exception as e:
+                flash(f'حدث خطأ أثناء تحميل الصورة: {e}', 'danger')
+
+        # Loop through form fields and update settings
+        for field in form:
+            if field.type != 'FileField' and field.type != 'CSRFTokenField' and field.type != 'SubmitField':
+                setting = Setting.query.filter_by(key=field.name).first()
+                if setting:
+                    setting.value = field.data
+                else:
+                    db.session.add(Setting(key=field.name, value=field.data))
         
         try:
-        db.session.commit()
-        flash('تم تحديث الإعدادات بنجاح.', 'success')
+            db.session.commit()
+            flash('تم حفظ الإعدادات بنجاح!', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'حدث خطأ أثناء حفظ الإعدادات: {e}', 'danger')
-
+            
         return redirect(url_for('admin.admin_settings'))
 
-    # Logic for GET request
-    hero_image_path = None
-    settings_db = Setting.query.all()
-    settings_dict = {s.key: s.value for s in settings_db}
-    
-    # Get the hero image path to pass to the template
-    if 'hero_image' in settings_dict:
-        hero_image_path = settings_dict['hero_image']
-
+    # Populate form with existing settings
+    settings = Setting.query.all()
+    settings_dict = {setting.key: setting.value for setting in settings}
     form.process(data=settings_dict)
+    
+    hero_image_url = url_for('static', filename=f"uploads/settings/{settings_dict.get('hero_image')}") if settings_dict.get('hero_image') else None
 
-    if form.hero_height.data:
-        try:
-            form.hero_height.data = int(form.hero_height.data)
-        except (ValueError, TypeError):
-            form.hero_height.data = 75
-
-    return render_template('admin/settings.html', form=form, title="إعدادات الموقع", hero_image_path=hero_image_path)
+    return render_template('admin/settings.html', form=form, hero_image_url=hero_image_url)
 
 
 # ===== Manageable Pages =====

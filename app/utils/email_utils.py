@@ -21,10 +21,6 @@ def send_email(to_email, subject, body_html, sender_name='Sultan Prints'):
     if not sender_email:
         current_app.logger.error("MAIL_USERNAME is not set in config. Cannot send email.")
         return False
-    
-    if not mail.init_app:
-        current_app.logger.error("Flask-Mail is not initialized correctly.")
-        return False
 
     try:
         msg = Message(
