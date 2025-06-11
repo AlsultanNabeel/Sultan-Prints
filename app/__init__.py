@@ -6,12 +6,20 @@ from .extensions import db
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
+from markupsafe import escape, Markup
 
 pymysql.install_as_MySQLdb()
 
 migrate = Migrate()
 csrf = CSRFProtect()
 mail = Mail()
+
+def nl2br(value):
+    """Converts newlines in a string to HTML <br> tags."""
+    if not isinstance(value, str):
+        return value
+    escaped_value = escape(value)
+    return Markup(escaped_value.replace('\\n', '<br>\\n'))
 
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder='../static')
@@ -22,6 +30,9 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     csrf.init_app(app)
     mail.init_app(app)
+
+    # Register custom Jinja filter
+    app.jinja_env.filters['nl2br'] = nl2br
 
     # Register CLI commands
     from . import commands
