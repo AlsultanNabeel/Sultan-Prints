@@ -193,39 +193,6 @@ def show_page(slug):
     page = Page.query.filter_by(slug=slug, is_published=True).first_or_404()
     return render_template('main/page.html', page=page)
 
-@main.route('/test-email-debug')
-def test_email_debug():
-    # This is a temporary debug route.
-    # It attempts to send an email and logs the result.
-    admin_email = current_app.config.get('ADMIN_EMAIL')
-    if not admin_email:
-        flash('ADMIN_EMAIL is not set in the environment variables.', 'danger')
-        current_app.logger.error("Debug Route: ADMIN_EMAIL is not set.")
-        return redirect(url_for('main.index'))
-
-    subject = "Email Configuration Test from Sultan Prints"
-    body_html = "<h1>This is a test email.</h1><p>If you have received this, your email configuration is working correctly.</p>"
-    
-    current_app.logger.info(f"Debug Route: Attempting to send test email to {admin_email}")
-    
-    try:
-        was_sent = send_email(
-            to_email=admin_email,
-            subject=subject,
-            body_html=body_html
-        )
-        if was_sent:
-            flash(f'Successfully sent a test email to {admin_email}. Please check your inbox (and spam folder).', 'success')
-            current_app.logger.info("Debug Route: Test email sent successfully flag returned True.")
-        else:
-            flash(f'The send_email function completed but returned False. Check the runtime logs for errors.', 'warning')
-            current_app.logger.warning("Debug Route: send_email function returned False.")
-    except Exception as e:
-        flash(f'An unexpected error occurred while trying to send the email: {e}', 'danger')
-        current_app.logger.error(f"Debug Route: An unexpected exception occurred: {e}", exc_info=True)
-
-    return redirect(url_for('main.index'))
-
 @main.route('/track_order', methods=['GET', 'POST'])
 def track_order():
     order = None
