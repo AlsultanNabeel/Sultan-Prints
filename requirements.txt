@@ -31,4 +31,4 @@ Werkzeug==3.0.1
 WTForms==3.2.1
 zipp==3.23.0
 stripe==8.5.0
-mailerlite==1.0.0
+mailerlite==0.1.10
