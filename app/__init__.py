@@ -5,11 +5,13 @@ from config import Config
 from .extensions import db
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
+from flask_mail import Mail
 
 pymysql.install_as_MySQLdb()
 
 migrate = Migrate()
 csrf = CSRFProtect()
+mail = Mail()
 
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder='../static')
@@ -19,6 +21,7 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
+    mail.init_app(app)
 
     # Register CLI commands
     from . import commands
