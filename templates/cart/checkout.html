@@ -69,6 +69,10 @@
                                     {{ form.name(class="form-control form-control-lg", id="name", placeholder="أدخل الاسم الكامل", required=true) }}
                                 </div>
                                 <div class="col-12">
+                                    <label for="email" class="form-label">البريد الإلكتروني</label>
+                                    {{ form.email(class="form-control form-control-lg", id="email", placeholder="example@email.com", required=true, type="email") }}
+                                </div>
+                                <div class="col-12">
                                     <label for="phone" class="form-label">رقم الهاتف</label>
                                     {{ form.phone(class="form-control form-control-lg", id="phone", placeholder="01XXXXXXXXX", required=true) }}
                                 </div>

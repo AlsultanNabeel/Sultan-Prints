@@ -152,4 +152,17 @@ migrations/
 *.sqlite3
 dev.db
 site.db
-app.db 
+app.db
+
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.DS_Store
+
+# Web compile files
+.web-compile 

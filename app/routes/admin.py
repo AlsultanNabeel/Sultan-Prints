@@ -342,7 +342,7 @@ def admin_settings():
         for field_name, value in form.data.items():
             if field_name in ['csrf_token', 'submit']:
                 continue
-
+            
             setting = Setting.query.filter_by(key=field_name).first()
             if not setting:
                 setting = Setting(key=field_name)
@@ -364,8 +364,8 @@ def admin_settings():
                     setting.value = '' 
         
         try:
-            db.session.commit()
-            flash('تم تحديث الإعدادات بنجاح.', 'success')
+        db.session.commit()
+        flash('تم تحديث الإعدادات بنجاح.', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'حدث خطأ أثناء حفظ الإعدادات: {e}', 'danger')
@@ -382,7 +382,7 @@ def admin_settings():
         hero_image_path = settings_dict['hero_image']
 
     form.process(data=settings_dict)
-    
+
     if form.hero_height.data:
         try:
             form.hero_height.data = int(form.hero_height.data)

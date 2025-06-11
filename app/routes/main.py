@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from app.models import Product, Design, Contact, Order, Page, Setting, Announcement, FAQ
 from app.forms import ContactForm
 from app import db
+from app.utils.email_utils import send_email
 import json
 import os
 import uuid
@@ -172,6 +173,16 @@ def contact():
         )
         db.session.add(contact_msg)
         db.session.commit()
+
+        # Send email notification to admin
+        admin_email = current_app.config.get('ADMIN_EMAIL')
+        if admin_email:
+            subject = f"رسالة جديدة من صفحة تواصل معنا من {form.name.data}"
+            body_html = render_template('emails/contact_notification.html', msg=contact_msg)
+            send_email(admin_email, subject, body_html)
+        else:
+            current_app.logger.warning("ADMIN_EMAIL is not set. Cannot send contact form notification.")
+
         flash('تم إرسال رسالتك بنجاح، سنتواصل معك قريبًا', 'success')
         return redirect(url_for('main.contact'))
     return render_template('main/contact.html', form=form, page=page, faqs=faqs)

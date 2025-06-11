@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from app.utils import get_or_create_cart, calculate_cart_total
 from app.services.discounts import DiscountManager
+from app.utils.email_utils import send_email
 
 cart_bp = Blueprint('cart', __name__, url_prefix='/cart')
 
@@ -205,7 +206,7 @@ def checkout():
         order = Order(
             customer_name=form.name.data,
             customer_phone=form.phone.data,
-            customer_email=session.get('user_email', 'guest@example.com'),
+            customer_email=form.email.data,
             address=form.address.data,
             payment_method=form.payment_method.data,
             total_amount=final_total_with_discount,
@@ -223,6 +224,40 @@ def checkout():
         session.pop('discount_amount', None)
 
         db.session.commit()
+
+        # Send order confirmation email to the customer
+        try:
+            subject = f"تأكيد طلبك من Sultan Prints (رقم الطلب: #{order.reference})"
+            email_body = render_template(
+                'emails/order_confirmation_customer.html', 
+                order=order
+            )
+            send_email(
+                to_email=order.customer_email,
+                subject=subject,
+                body_html=email_body
+            )
+            current_app.logger.info(f"Order confirmation email sent for order {order.reference} to {order.customer_email}")
+
+            # Send notification email to admin
+            admin_email = current_app.config.get('ADMIN_EMAIL')
+            if admin_email:
+                admin_subject = f"طلب جديد على المتجر! رقم الطلب: #{order.reference}"
+                admin_body = render_template(
+                    'emails/order_notification_admin.html',
+                    order=order
+                )
+                send_email(
+                    to_email=admin_email,
+                    subject=admin_subject,
+                    body_html=admin_body
+                )
+                current_app.logger.info(f"Admin notification sent for order {order.reference}")
+            else:
+                current_app.logger.warning("ADMIN_EMAIL not set, skipping admin notification.")
+
+        except Exception as e:
+            current_app.logger.error(f"Failed to send email for order {order.reference}: {e}")
         
         flash('تم استلام طلبك بنجاح!', 'success')
         return redirect(url_for('cart.order_confirmation', order_number=order.reference))

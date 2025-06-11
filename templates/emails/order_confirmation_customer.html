@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تأكيد طلبك</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 25px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .content {
+            padding: 30px 40px;
+        }
+        .content h2 {
+            color: #000;
+            font-size: 22px;
+            margin-top: 0;
+        }
+        .order-summary, .shipping-details {
+            margin-bottom: 30px;
+        }
+        .order-summary table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .order-summary th, .order-summary td {
+            padding: 12px 0;
+            text-align: right;
+            border-bottom: 1px solid #eeeeee;
+        }
+        .order-summary th {
+            font-weight: bold;
+            color: #555;
+        }
+        .order-summary .total-row td {
+            font-weight: bold;
+            font-size: 18px;
+            color: #000;
+            border-top: 2px solid #333;
+        }
+        .shipping-details p {
+            margin: 5px 0;
+        }
+        .footer {
+            background-color: #f4f4f4;
+            padding: 25px;
+            text-align: center;
+            font-size: 14px;
+            color: #777;
+        }
+        .footer a {
+            color: #000;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Sultan Prints</h1>
+        </div>
+        <div class="content">
+            <h2>شكراً لطلبك، {{ order.customer_name }}!</h2>
+            <p>لقد استلمنا طلبك بنجاح. نحن الآن نقوم بتجهيزه للشحن. هذا ملخص لطلبك رقم <strong>#{{ order.reference }}</strong>:</p>
+
+            <div class="order-summary">
+                <h3>ملخص الطلب</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>المنتج</th>
+                            <th style="text-align: center;">الكمية</th>
+                            <th style="text-align: left;">السعر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.order_items %}
+                        <tr>
+                            <td>
+                                {{ item.product_name }}
+                                <br>
+                                <small style="color: #666;">
+                                    {% if item.size %}المقاس: {{ item.size }}{% endif %}
+                                    {% if item.color %} - اللون: {{ item.color }}{% endif %}
+                                </small>
+                            </td>
+                            <td style="text-align: center;">{{ item.quantity }}</td>
+                            <td style="text-align: left;">{{ "%.2f"|format(item.price * item.quantity) }} جنيه</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        {% set subtotal = order.total_amount - 50.0 + order.discount_amount %}
+                        <tr>
+                            <td colspan="2">إجمالي المنتجات</td>
+                            <td style="text-align: left;">{{ "%.2f"|format(subtotal) }} جنيه</td>
+                        </tr>
+                        {% if order.discount_amount and order.discount_amount > 0 %}
+                        <tr>
+                            <td colspan="2">الخصم ({{ order.discount_code }})</td>
+                            <td style="text-align: left; color: green;">-{{ "%.2f"|format(order.discount_amount) }} جنيه</td>
+                        </tr>
+                        {% endif %}
+                         <tr>
+                            <td colspan="2">رسوم الشحن</td>
+                            <td style="text-align: left;">50.00 جنيه</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td colspan="2">المجموع الكلي</td>
+                            <td style="text-align: left;">{{ "%.2f"|format(order.total_amount) }} جنيه</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="shipping-details">
+                <h3>سيتم الشحن إلى:</h3>
+                <p><strong>{{ order.customer_name }}</strong></p>
+                <p>{{ order.address }}</p>
+                <p>{{ order.customer_phone }}</p>
+            </div>
+
+            <p>إذا كانت لديك أي أسئلة، لا تتردد في <a href="{{ url_for('main.contact', _external=True) }}">التواصل معنا</a>.</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ "now"|date("Y") }} Sultan Prints. كل الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html> 

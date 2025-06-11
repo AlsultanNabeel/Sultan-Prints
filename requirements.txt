@@ -11,7 +11,7 @@ Flask-Migrate==4.1.0
 Flask-SQLAlchemy==3.1.1
 Flask-WTF==1.2.2
 greenlet==3.2.3
-gunicorn==23.0.0
+gunicorn==21.2.0
 idna==3.10
 importlib_metadata==8.7.0
 itsdangerous==2.2.0
@@ -27,6 +27,8 @@ python-dotenv==1.1.0
 SQLAlchemy==2.0.41
 tomli==2.2.1
 typing_extensions==4.14.0
-Werkzeug==3.0.6
+Werkzeug==3.0.1
 WTForms==3.2.1
 zipp==3.23.0
+stripe==8.5.0
+mailerlite==1.0.0
