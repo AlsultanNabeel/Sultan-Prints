@@ -146,7 +146,6 @@ run.py
 # Config files with secrets
 config.py
 .env
-migrations/
 
 # SQLite database files
 *.sqlite3
@@ -165,4 +164,4 @@ app.db
 *.DS_Store
 
 # Web compile files
-.web-compile 
+.web-compile
