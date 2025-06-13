@@ -3,7 +3,7 @@ import pymysql
 from flask import Flask
 from config import Config
 from .extensions import db
-from flask_migrate import Migrate
+from flask_migrate import Migrate, upgrade
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
 from markupsafe import escape, Markup
@@ -29,6 +29,23 @@ def create_app(config_class=Config):
     # Initialize Flask extensions
     db.init_app(app)
     migrate.init_app(app, db)
+
+    # --- BEGIN MODIFICATION ---
+    # محاولة تطبيق تحديثات قاعدة البيانات عند بدء التشغيل
+    # هذا مهم للمنصات مثل DigitalOcean App Platform
+    # حيث قد لا يتم تشغيل 'flask db upgrade' بشكل منفصل.
+    with app.app_context():
+        print("INFO: Attempting to apply database migrations...")
+        try:
+            upgrade() # هذا هو أمر flask_migrate.upgrade
+            print("INFO: Database migrations check/apply completed.")
+        except Exception as e:
+            # تسجيل الخطأ، ولكن السماح للتطبيق بالاستمرار في البدء.
+            # قد تمنع أخطاء الترحيل الحرجة التطبيق من العمل بشكل صحيح.
+            print(f"WARNING: Error applying database migrations: {e}")
+            print("WARNING: The application will continue starting, but some features might not work if migrations failed.")
+    # --- END MODIFICATION ---
+
     csrf.init_app(app)
     mail.init_app(app)
 
