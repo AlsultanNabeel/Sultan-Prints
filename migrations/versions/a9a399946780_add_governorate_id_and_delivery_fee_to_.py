@@ -30,10 +30,10 @@ def upgrade():
         batch_op.drop_column('updated_at')
         batch_op.drop_column('is_active')
 
+    # إصلاح مشكلة القيم الفارغة قبل جعل العمود NOT NULL
+    op.execute("UPDATE orders SET delivery_fee = 0 WHERE delivery_fee IS NULL;")
     with op.batch_alter_table('orders', schema=None) as batch_op:
         batch_op.add_column(sa.Column('governorate_id', sa.Integer(), nullable=True))
-        # إصلاح مشكلة القيم الفارغة قبل جعل العمود NOT NULL
-        op.execute("UPDATE orders SET delivery_fee = 0 WHERE delivery_fee IS NULL;")
         batch_op.alter_column('delivery_fee',
                existing_type=mysql.FLOAT(),
                nullable=False)
