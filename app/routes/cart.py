@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, abort, current_app, jsonify
-from app.models import Product, Cart, CartItem, Design, Order, OrderItem
+from app.models import Product, Cart, CartItem, Design, Order, OrderItem, Governorate # Added Governorate
 from app.forms import CheckoutForm
 from app import db
 import uuid, os, json
@@ -181,35 +181,50 @@ def remove_from_cart(item_id):
 
 @cart_bp.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    # This is a simplified version of the original checkout logic
     cart = Cart.query.filter_by(session_id=session.get('cart_id')).first()
     if not cart or not cart.items.all():
         flash('سلة التسوق فارغة.', 'info')
         return redirect(url_for('main.index'))
 
     form = CheckoutForm()
-    
-    # Calculation logic to be used for both POST and GET
+    governorates = Governorate.query.order_by(Governorate.name.asc()).all()
+    # إضافة خيار افتراضي واحد فقط للمحافظة
+    form.governorate.choices = [('', 'اختر المحافظة')] + [(g.id, f"{g.name} (+{g.delivery_fee:.2f} ج.م)") for g in governorates]
+
     products_total = sum(item.product.price * item.quantity for item in cart.items if item.product)
-    shipping_cost = 50.0 if products_total <= 500 else 0.0
-    final_total = products_total + shipping_cost
+    # Delivery fee will be determined after governorate selection
+    delivery_fee = 0.0 
+    final_total = products_total # Initially, final_total is just products_total
 
     if form.validate_on_submit():
+        selected_governorate_id = form.governorate.data
+        selected_governorate = Governorate.query.get(selected_governorate_id)
+        if not selected_governorate:
+            flash('الرجاء اختيار محافظة صحيحة.', 'danger')
+            return render_template('cart/checkout.html', cart=cart, form=form, products_total=products_total, delivery_fee=0, final_total=products_total)
+
+        delivery_fee = selected_governorate.delivery_fee
+        final_total = products_total + delivery_fee
+
         # Get discount from session if available
         discount_code = session.get('discount_code')
         discount_amount = session.get('discount_amount', 0)
-
-        # Recalculate final total with discount
-        final_total_with_discount = products_total + shipping_cost - discount_amount
+        
+        # Adjust final_total if discount is applied
+        if discount_code and discount_amount > 0:
+            final_total -= discount_amount
+            final_total = max(0, final_total) # Ensure total doesn't go below zero
 
         # Order creation logic with discount
         order = Order(
             customer_name=form.name.data,
-            customer_phone=form.phone.data,
             customer_email=form.email.data,
+            customer_phone=form.phone.data,
             address=form.address.data,
+            governorate_id=selected_governorate_id,
+            delivery_fee=delivery_fee,
             payment_method=form.payment_method.data,
-            total_amount=final_total_with_discount,
+            total_amount=final_total, # Save the final total including delivery and after discount
             discount_code=discount_code,
             discount_amount=discount_amount
         )
@@ -222,8 +237,6 @@ def checkout():
         session.pop('cart_count', None)
         session.pop('discount_code', None)
         session.pop('discount_amount', None)
-
-        db.session.commit()
 
         # Send emails after successful commit
         try:
@@ -263,15 +276,10 @@ def checkout():
         flash('تم استلام طلبك بنجاح!', 'success')
         return redirect(url_for('cart.order_confirmation', order_number=order.reference))
 
-    return render_template(
-        'cart/checkout.html',
-        form=form,
-        cart_items=cart.items,
-        products_total=products_total,
-        shipping_cost=shipping_cost,
-        final_total=final_total,
-        vodafone_number=current_app.config.get('VODAFONE_CASH_NUMBER')
-    )
+    # For GET request, or if form validation fails
+    # Delivery fee is 0 initially, will be updated by JS
+    # Final total for display is initially just products_total
+    return render_template('cart/checkout.html', cart=cart, form=form, products_total=products_total, delivery_fee=0, final_total=products_total)
 
 @cart_bp.route('/order_confirmation/<order_number>')
 def order_confirmation(order_number):
@@ -306,5 +314,12 @@ def apply_coupon():
         session.pop('discount_code', None)
         session.pop('discount_amount', None)
         return jsonify({'success': False, 'error': message}), 400
+
+@cart_bp.route('/get_delivery_fee/<int:governorate_id>')
+def get_delivery_fee(governorate_id):
+    governorate = Governorate.query.get(governorate_id)
+    if governorate:
+        return jsonify({'delivery_fee': governorate.delivery_fee, 'name': governorate.name})
+    return jsonify({'error': 'Governorate not found'}), 404
 
 # يمكن إضافة مسارات add_to_cart و remove_from_cart لاحقًا بنفس النمط مع حماية قوية

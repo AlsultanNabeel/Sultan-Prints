@@ -80,6 +80,14 @@
                                     <label for="address" class="form-label">العنوان بالتفصيل</label>
                                     {{ form.address(class="form-control form-control-lg", id="address", rows="3", placeholder="المحافظة، المدينة، الشارع، رقم المبنى...", required=true) }}
                                 </div>
+                                <div class="col-12">
+                                    <label for="governorate" class="form-label">المحافظة</label>
+                                    <select name="governorate" class="form-select form-select-lg" id="governorate" required>
+                                        {% for value, label in form.governorate.choices %}
+                                            <option value="{{ value }}" {% if form.governorate.data == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -161,7 +169,7 @@
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                                     <span>رسوم الشحن</span>
-                                    <strong id="shipping-cost">{{ shipping_cost|round(2) }} جنيه</strong>
+                                    <strong id="shipping-cost">--</strong>
                                 </li>
                                 <li id="discount-row" class="list-group-item d-flex justify-content-between align-items-center px-0 text-success" style="display: none;">
                                     <span>الخصم</span>
@@ -169,7 +177,7 @@
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center px-0 h5">
                                     <strong>المجموع الكلي</strong>
-                                    <strong class="text-primary" id="final-total">{{ final_total|round(2) }} جنيه</strong>
+                                    <strong class="text-primary" id="final-total">--</strong>
                                 </li>
                             </ul>
                         </div>
@@ -238,56 +246,70 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-});
 
-async function applyCoupon(event) {
-    event.preventDefault();
-    const couponCode = document.getElementById('coupon-code').value;
-    const messageEl = document.getElementById('coupon-message');
-    const productsTotal = parseFloat('{{ products_total }}');
-    const shippingCost = parseFloat(document.getElementById('shipping-cost').textContent);
+    // تحديث رسوم الشحن والمجموع الكلي عند تغيير المحافظة
+    const governorateSelect = document.getElementById('governorate');
+    const shippingCostElem = document.getElementById('shipping-cost');
+    const finalTotalElem = document.getElementById('final-total');
+    const productsTotal = parseFloat("{{ products_total|round(2) }}");
+    let discountAmount = 0;
 
-    if (!couponCode) {
-        messageEl.textContent = 'يرجى إدخال كود الخصم.';
-        messageEl.className = 'mt-2 small text-danger';
-        return;
+    function updateTotals(deliveryFee) {
+        let total = productsTotal + deliveryFee - discountAmount;
+        if (total < 0) total = 0;
+        shippingCostElem.textContent = deliveryFee.toFixed(2) + ' جنيه';
+        finalTotalElem.textContent = total.toFixed(2) + ' جنيه';
     }
 
-    try {
-        const response = await fetch('/cart/apply_coupon', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({ coupon_code: couponCode })
+    if (governorateSelect) {
+        governorateSelect.addEventListener('change', function() {
+            const govId = this.value;
+            if (govId) {
+                fetch(`/cart/get_delivery_fee/${govId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.delivery_fee !== undefined) {
+                            updateTotals(parseFloat(data.delivery_fee));
+                        }
+                    });
+            }
         });
-        const data = await response.json();
-
-        if (data.success) {
-            messageEl.textContent = data.message;
-            messageEl.className = 'mt-2 small text-success';
-            
-            // Update summary
-            const discountAmount = data.discount_amount;
-            document.getElementById('discount-amount').textContent = `- ${discountAmount.toFixed(2)} جنيه`;
-            document.getElementById('discount-row').style.display = 'flex';
-            
-            const newFinalTotal = (productsTotal + shippingCost) - discountAmount;
-            document.getElementById('final-total').textContent = `${newFinalTotal.toFixed(2)} جنيه`;
-            
-        } else {
-            messageEl.textContent = data.error;
-            messageEl.className = 'mt-2 small text-danger';
-            
-            // Hide discount row if there was a previous discount
-            document.getElementById('discount-row').style.display = 'none';
-            document.getElementById('final-total').textContent = `${(productsTotal + shippingCost).toFixed(2)} جنيه`;
-        }
-    } catch (error) {
-        messageEl.textContent = 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
-        messageEl.className = 'mt-2 small text-danger';
     }
-}
+
+    // عند تطبيق كود الخصم
+    window.applyCoupon = function(event) {
+        event.preventDefault();
+        const code = document.getElementById('coupon-code').value;
+        fetch("{{ url_for('cart.apply_coupon') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ coupon_code: code })
+        })
+        .then(res => res.json())
+        .then(data => {
+            const msgElem = document.getElementById('coupon-message');
+            if (data.success) {
+                discountAmount = data.discount_amount;
+                document.getElementById('discount-row').style.display = '';
+                document.getElementById('discount-amount').textContent = '-' + discountAmount.toFixed(2) + ' جنيه';
+                // إعادة حساب المجموع الكلي
+                let deliveryFee = parseFloat(shippingCostElem.textContent);
+                if (isNaN(deliveryFee)) deliveryFee = 0;
+                updateTotals(deliveryFee);
+                msgElem.textContent = data.message;
+                msgElem.className = 'text-success';
+            } else {
+                discountAmount = 0;
+                document.getElementById('discount-row').style.display = 'none';
+                document.getElementById('discount-amount').textContent = '';
+                let deliveryFee = parseFloat(shippingCostElem.textContent);
+                if (isNaN(deliveryFee)) deliveryFee = 0;
+                updateTotals(deliveryFee);
+                msgElem.textContent = data.error;
+                msgElem.className = 'text-danger';
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

@@ -64,6 +64,17 @@ class Product(db.Model):
     status = db.Column(db.String(32), default='pending')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
+class Governorate(db.Model):
+    """نموذج المحافظات"""
+    __tablename__ = 'governorates'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    delivery_fee = db.Column(db.Float, nullable=False, default=0.0)
+    orders = db.relationship('Order', backref='governorate_info', lazy='dynamic') # Renamed backref
+
+    def __repr__(self):
+        return f'<Governorate {self.name}>'
+
 class Order(db.Model):
     """نموذج الطلب"""
     __tablename__ = 'orders'
@@ -72,7 +83,9 @@ class Order(db.Model):
     customer_name = db.Column(db.String(120), nullable=False)
     customer_email = db.Column(db.String(120), nullable=False)
     customer_phone = db.Column(db.String(32), nullable=False)
-    address = db.Column(db.Text, nullable=False)
+    address = db.Column(db.Text, nullable=False) # Detailed address (street, building, etc.)
+    governorate_id = db.Column(db.Integer, db.ForeignKey('governorates.id'), nullable=True) # Changed from False to True
+    delivery_fee = db.Column(db.Float, nullable=False, default=0.0)
     payment_method = db.Column(db.String(32), nullable=False)
     vodafone_receipt = db.Column(db.String(255), nullable=True)
     total_amount = db.Column(db.Float, nullable=False, default=0)

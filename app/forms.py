@@ -66,11 +66,17 @@ class AdminLoginForm(FlaskForm):
     password = PasswordField('كلمة المرور', validators=[DataRequired()])
     submit = SubmitField('تسجيل الدخول')
 
+class GovernorateForm(FlaskForm):
+    name = StringField('اسم المحافظة', validators=[DataRequired(), Length(min=2, max=100)], render_kw={"class": "form-control"})
+    delivery_fee = FloatField('رسوم التوصيل', validators=[DataRequired(), NumberRange(min=0)], render_kw={"class": "form-control"})
+    submit = SubmitField('حفظ', render_kw={"class": "btn btn-primary"})
+
 class CheckoutForm(FlaskForm):
     name = StringField('الاسم الكامل', validators=[DataRequired(), Length(min=2, max=100)])
     email = StringField('البريد الإلكتروني', validators=[DataRequired(), Email(message="الرجاء إدخال بريد إلكتروني صالح.")])
     phone = StringField('رقم الهاتف', validators=[DataRequired(), Length(min=6, max=20)])
-    address = TextAreaField('العنوان بالتفصيل', validators=[DataRequired(), Length(min=10, max=500)])
+    governorate = SelectField('المحافظة', coerce=int, validators=[DataRequired()], render_kw={"class": "form-control"})
+    address = TextAreaField('العنوان بالتفصيل (الشارع، رقم المنزل، علامة مميزة)', validators=[DataRequired(), Length(min=10, max=500)])
     payment_method = RadioField('طريقة الدفع', choices=[
         ('cod', 'الدفع عند الاستلام'),
         ('vodafone_cash', 'فودافون كاش')

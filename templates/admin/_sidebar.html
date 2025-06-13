@@ -20,6 +20,9 @@
     <a href="{{ url_for('admin.faqs') }}" class="list-group-item list-group-item-action {% if 'faqs' in request.endpoint %}active{% endif %}">
         <i class="fas fa-question-circle me-2"></i> الأسئلة الشائعة
     </a>
+    <a href="{{ url_for('admin.governorates') }}" class="list-group-item list-group-item-action {% if 'governorates' in request.endpoint or 'edit_governorate' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-map-marked-alt me-2"></i> إدارة المحافظات
+    </a>
     <a href="{{ url_for('admin.pages') }}" class="list-group-item list-group-item-action {% if 'pages' in request.endpoint %}active{% endif %}">
         <i class="fas fa-file-alt me-2"></i> إدارة الصفحات
     </a>
@@ -29,4 +32,4 @@
     <a href="{{ url_for('admin.logout') }}" class="list-group-item list-group-item-action text-danger">
         <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
     </a>
-</div> 
+</div>

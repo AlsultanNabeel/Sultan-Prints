@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app, jsonify
-from app.models import Product, Design, Order, OrderStatus, Setting, Page, Announcement, FAQ
-from app.forms import ProductForm, AdminLoginForm, OrderStatusForm, SettingsForm, PageForm, AnnouncementForm, FAQForm, DiscountForm
+from app.models import Product, Design, Order, OrderStatus, Setting, Page, Announcement, FAQ, Governorate
+from app.forms import ProductForm, AdminLoginForm, OrderStatusForm, SettingsForm, PageForm, AnnouncementForm, FAQForm, DiscountForm, GovernorateForm
 from app import db
 from app.utils import save_image
 from app.services.discounts import Discount
@@ -499,13 +499,65 @@ def edit_faq(faq_id):
         return redirect(url_for('admin.faqs'))
     return render_template('admin/faq_form.html', form=form)
 
-@admin.route('/admin/faqs/delete/<int:faq_id>', methods=['POST'])
+# Governorate Management
+@admin.route('/admin/governorates')
 @admin_login_required
-def delete_faq(faq_id):
-    faq = FAQ.query.get_or_404(faq_id)
-    db.session.delete(faq)
-    db.session.commit()
-    flash('تم حذف السؤال بنجاح.', 'success')
-    return redirect(url_for('admin.faqs'))
+def governorates():
+    all_governorates = Governorate.query.order_by(Governorate.name.asc()).all()
+    form = GovernorateForm()
+    return render_template('admin/governorates.html', governorates=all_governorates, form=form)
 
-# يمكن إضافة باقي المسارات (edit, delete, designs, orders) بنفس النمط لاحقًا
+@admin.route('/admin/governorates/add', methods=['POST'])
+@admin_login_required
+def add_governorate():
+    form = GovernorateForm()
+    if form.validate_on_submit():
+        try:
+            new_governorate = Governorate(
+                name=form.name.data,
+                delivery_fee=form.delivery_fee.data
+            )
+            db.session.add(new_governorate)
+            db.session.commit()
+            flash('تمت إضافة المحافظة بنجاح.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ أثناء إضافة المحافظة: {str(e)}', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                # Ensure getattr(form, field).label is accessed safely
+                label_text = getattr(getattr(form, field), 'label', None)
+                field_name = label_text.text if label_text else field
+                flash(f"خطأ في حقل {field_name}: {error}", "danger")
+    return redirect(url_for('admin.governorates'))
+
+@admin.route('/admin/governorates/edit/<int:gov_id>', methods=['GET', 'POST'])
+@admin_login_required
+def edit_governorate(gov_id):
+    governorate = Governorate.query.get_or_404(gov_id)
+    form = GovernorateForm(obj=governorate)
+    if form.validate_on_submit():
+        try:
+            governorate.name = form.name.data
+            governorate.delivery_fee = form.delivery_fee.data
+            db.session.commit()
+            flash('تم تحديث المحافظة بنجاح.', 'success')
+            return redirect(url_for('admin.governorates'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ أثناء تحديث المحافظة: {str(e)}', 'danger')
+    return render_template('admin/edit_governorate.html', form=form, governorate=governorate)
+
+@admin.route('/admin/governorates/delete/<int:gov_id>', methods=['POST'])
+@admin_login_required
+def delete_governorate(gov_id):
+    governorate = Governorate.query.get_or_404(gov_id)
+    try:
+        db.session.delete(governorate)
+        db.session.commit()
+        flash('تم حذف المحافظة بنجاح.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ أثناء حذف المحافظة: {str(e)}. قد تكون هناك طلبات مرتبطة بهذه المحافظة.', 'danger')
+    return redirect(url_for('admin.governorates'))
