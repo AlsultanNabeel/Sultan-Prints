@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session, abort, current_app, jsonify
-from app.models import Product, Cart, CartItem, Design, Order, OrderItem, Governorate # Added Governorate
-from app.forms import CheckoutForm
-from app import db
+from flask import Blueprint, render_template, redirect, url_for, flash, session, request, jsonify
+from app.models import Product, Order, OrderItem, Cart, CartItem, Design, Governorate # Added Cart, CartItem, Design, Governorate
+from app.services.discounts import DiscountManager, Discount # Discount is from here
+from app.extensions import db # For db.session
+from app.forms import CheckoutForm # For CheckoutForm
 import uuid, os, json
 from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
@@ -9,6 +10,7 @@ from datetime import datetime
 from app.utils import get_or_create_cart, calculate_cart_total
 from app.services.discounts import DiscountManager
 from app.utils.email_utils import send_email
+from flask import current_app # Add this import for logging
 
 cart_bp = Blueprint('cart', __name__, url_prefix='/cart')
 
@@ -288,32 +290,60 @@ def order_confirmation(order_number):
 
 @cart_bp.route('/apply_coupon', methods=['POST'])
 def apply_coupon():
-    """Applies a coupon to the cart."""
-    code = request.json.get('coupon_code')
-    if not code:
-        return jsonify({'error': 'لم يتم تقديم رمز القسيمة'}), 400
+    print("--- Attempting to enter apply_coupon function ---") # New print statement
+    coupon_code = request.form.get('coupon_code')
+    print(f"--- Coupon code from form: {coupon_code} ---") # Existing print, good to keep
 
-    cart = get_or_create_cart()
-    if not cart.items:
-        return jsonify({'error': 'سلة التسوق فارغة'}), 400
+    if not coupon_code:
+        print("--- Error: Coupon code is required ---")
+        return jsonify({'error': 'Coupon code is required'}), 400
 
-    products_total = sum(item.product.price * item.quantity for item in cart.items if item.product)
+    cart = session.get('cart', {})
+    print(f"--- Cart from session: {cart} ---") # Existing print, good to keep
+
+    if not cart:
+        print("--- Error: Cart is empty ---")
+        return jsonify({'error': 'Cart is empty'}), 400
+
+    # Calculate subtotal
+    subtotal = 0
+    for item_id, item_data in cart.items():
+        product = Product.query.get(item_data['product_id'])
+        if product:
+            subtotal += product.price * item_data['quantity']
     
-    discount_amount, message = DiscountManager.validate_coupon(code, products_total)
-    
-    if discount_amount > 0:
-        session['discount_code'] = code
-        session['discount_amount'] = discount_amount
+    print(f"--- Apply Coupon Attempt ---")
+    print(f"Received coupon code: {coupon_code}")
+    print(f"Cart subtotal: {subtotal}")
+
+    discount_manager = DiscountManager()
+    is_valid, message, discount_details = discount_manager.validate_discount(coupon_code, subtotal)
+
+    print(f"Discount validation result: is_valid={is_valid}, message='{message}', details={discount_details}")
+
+    if is_valid and discount_details:
+        session['discount_code'] = coupon_code
+        session['discount_amount'] = discount_details['discount_value']
+        session['discount_type'] = discount_details['discount_type']
+        session.modified = True
+        print(f"Coupon '{coupon_code}' applied successfully. Discount amount: {discount_details['discount_value']}, Type: {discount_details['discount_type']}")
         return jsonify({
-            'success': True,
             'message': message,
-            'discount_amount': discount_amount,
-            'new_total': products_total - discount_amount
-        })
+            'discount_amount': discount_details['discount_value'],
+            'discount_type': discount_details['discount_type'],
+            'new_total': discount_details['new_subtotal_after_discount']
+        }), 200
     else:
-        session.pop('discount_code', None)
-        session.pop('discount_amount', None)
-        return jsonify({'success': False, 'error': message}), 400
+        print(f"Failed to apply coupon '{coupon_code}': {message}")
+        return jsonify({'error': message}), 400
+
+@cart_bp.route('/remove_coupon', methods=['POST'])
+def remove_coupon():
+    session.pop('discount_code', None)
+    session.pop('discount_amount', None)
+    session.pop('discount_type', None)
+    session.modified = True
+    return jsonify({'message': 'تمت إزالة الكوبون بنجاح'}), 200
 
 @cart_bp.route('/get_delivery_fee/<int:governorate_id>')
 def get_delivery_fee(governorate_id):

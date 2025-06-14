@@ -1,4 +1,5 @@
 {% extends "admin/base.html" %}
+{% from "_form_helpers.html" import render_field %}
 
 {% block content %}
 <div class="discounts-container">
@@ -148,57 +149,56 @@
 </div>
 
 <!-- Add Discount Modal -->
-<div class="modal fade" id="addDiscountModal" tabindex="-1">
-    <div class="modal-dialog">
+<div class="modal fade" id="addDiscountModal" tabindex="-1" aria-labelledby="addDiscountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg"> {# Consider modal-lg for more space #}
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">إضافة كوبون خصم جديد</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="addDiscountModalLabel">إضافة كوبون خصم جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="addDiscountForm" onsubmit="return addDiscount(event)">
-                {{ form.csrf_token }}
+            {# The form variable is passed from the discounts route #}
+            <form id="addDiscountForm" onsubmit="return addDiscount(event)"> 
                 <div class="modal-body">
+                    {{ form.csrf_token }} {# Important for CSRF protection #}
+
                     <div class="mb-3">
-                        <label class="form-label">كود الخصم</label>
-                        <input type="text" class="form-control" name="code" required>
-                        <div class="form-text">يجب أن يكون الكود فريداً</div>
+                        {{ render_field(form.code, class="form-control", placeholder="مثال: RAMADAN25") }}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ render_field(form.type, class="form-select") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ render_field(form.value, class="form-control", type="number", step="0.01") }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ render_field(form.min_purchase, class="form-control", type="number", step="0.01", placeholder="اتركه فارغاً إذا لا يوجد") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ render_field(form.max_discount, class="form-control", type="number", step="0.01", placeholder="اتركه فارغاً إذا لا يوجد") }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ render_field(form.start_date, class="form-control", type="date") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ render_field(form.end_date, class="form-control", type="date") }}
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">نوع الخصم</label>
-                        <select class="form-select" name="type" required>
-                            <option value="percentage">نسبة مئوية</option>
-                            <option value="fixed">مبلغ ثابت</option>
-                        </select>
+                        {{ render_field(form.usage_limit, class="form-control", type="number", placeholder="اتركه فارغاً لعدد غير محدود") }}
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">قيمة الخصم</label>
-                        <input type="number" step="0.01" class="form-control" name="value" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">الحد الأدنى للطلب</label>
-                        <input type="number" step="0.01" class="form-control" name="min_purchase">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">الحد الأقصى للخصم</label>
-                        <input type="number" step="0.01" class="form-control" name="max_discount">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">تاريخ البداية</label>
-                        <input type="date" class="form-control" name="start_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">تاريخ الانتهاء</label>
-                        <input type="date" class="form-control" name="end_date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">الحد الأقصى للاستخدامات</label>
-                        <input type="number" class="form-control" name="usage_limit">
-                        <div class="form-text">اتركه فارغاً لعدد غير محدود من الاستخدامات</div>
+                    <div class="mb-3 form-check">
+                        {{ form.is_active(class="form-check-input") }}
+                        {{ form.is_active.label(class="form-check-label") }}
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-primary">إضافة</button>
+                    <button type="submit" class="btn btn-primary">إضافة الكوبون</button>
                 </div>
             </form>
         </div>
@@ -346,4 +346,4 @@ async function deactivateDiscount(discountId) {
     }
 }
 </script>
-{% endblock %} 
+{% endblock %}

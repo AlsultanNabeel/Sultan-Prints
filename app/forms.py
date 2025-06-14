@@ -75,7 +75,7 @@ class CheckoutForm(FlaskForm):
     name = StringField('الاسم الكامل', validators=[DataRequired(), Length(min=2, max=100)])
     email = StringField('البريد الإلكتروني', validators=[DataRequired(), Email(message="الرجاء إدخال بريد إلكتروني صالح.")])
     phone = StringField('رقم الهاتف', validators=[DataRequired(), Length(min=6, max=20)])
-    governorate = SelectField('المحافظة', coerce=int, validators=[DataRequired()], render_kw={"class": "form-control"})
+    governorate = SelectField('المحافظة', validators=[DataRequired(message="الرجاء اختيار المحافظة.")], render_kw={"class": "form-control"})
     address = TextAreaField('العنوان بالتفصيل (الشارع، رقم المنزل، علامة مميزة)', validators=[DataRequired(), Length(min=10, max=500)])
     payment_method = RadioField('طريقة الدفع', choices=[
         ('cod', 'الدفع عند الاستلام'),

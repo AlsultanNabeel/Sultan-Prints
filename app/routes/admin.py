@@ -2,10 +2,10 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from app.models import Product, Design, Order, OrderStatus, Setting, Page, Announcement, FAQ, Governorate
 from app.forms import ProductForm, AdminLoginForm, OrderStatusForm, SettingsForm, PageForm, AnnouncementForm, FAQForm, DiscountForm, GovernorateForm
 from app import db
-from app.utils import save_image
 from app.services.discounts import Discount
+from app.utils import save_image
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from werkzeug.utils import secure_filename
 from app.utils import allowed_file, log_event
@@ -294,6 +294,13 @@ def add_discount_api():
     form = DiscountForm(request.form)
     if form.validate():
         try:
+            # تحويل تاريخ البدء إلى كائن datetime (بداية اليوم)
+            parsed_start_date = datetime.strptime(form.start_date.data, '%Y-%m-%d')
+            
+            # تحويل تاريخ الانتهاء إلى كائن datetime (نهاية اليوم المحدد)
+            parsed_end_date_day_start = datetime.strptime(form.end_date.data, '%Y-%m-%d')
+            parsed_end_date = parsed_end_date_day_start + timedelta(days=1) - timedelta(microseconds=1)
+
             new_discount = Discount(
                 code=form.code.data.upper(),
                 type=form.type.data,
@@ -301,20 +308,38 @@ def add_discount_api():
                 min_purchase=form.min_purchase.data if form.min_purchase.data is not None else None,
                 max_discount=form.max_discount.data if form.max_discount.data is not None else None,
                 usage_limit=form.usage_limit.data if form.usage_limit.data is not None else None,
-                start_date=datetime.strptime(form.start_date.data, '%Y-%m-%d'),
-                end_date=datetime.strptime(form.end_date.data, '%Y-%m-%d'),
-                is_active=True
+                start_date=parsed_start_date,
+                end_date=parsed_end_date,
+                is_active=form.is_active.data # استخدام القيمة من الفورم
             )
             db.session.add(new_discount)
             db.session.commit()
-            return jsonify({'message': 'تم إضافة الكوبون بنجاح'}), 200
+            # إرجاع رسالة نجاح مع بيانات الكوبون المضاف إذا أردت عرضها في الواجهة
+            return jsonify({
+                'success': True, 
+                'message': 'تم إضافة الكوبون بنجاح',
+                'discount': {
+                    'id': new_discount.id,
+                    'code': new_discount.code,
+                    'type': new_discount.type,
+                    'value': new_discount.value,
+                    'start_date': new_discount.start_date.strftime('%Y-%m-%d'),
+                    'end_date': new_discount.end_date.strftime('%Y-%m-%d %H:%M:%S'), # عرض الوقت للتأكيد
+                    'is_active': new_discount.is_active
+                }
+            }), 200
+        except ValueError as ve: # لالتقاط أخطاء تنسيق التاريخ
+            db.session.rollback()
+            current_app.logger.error(f"Error adding discount due to date format: {ve}")
+            return jsonify({'success': False, 'message': f'خطأ في تنسيق التاريخ: {ve}. يرجى استخدام YYYY-MM-DD.'}), 400
         except Exception as e:
             db.session.rollback()
-            return jsonify({'message': f'حدث خطأ: {str(e)}'}), 500
+            current_app.logger.error(f"Error adding discount: {e}")
+            return jsonify({'success': False, 'message': f'حدث خطأ: {str(e)}'}), 500
     else:
         # جمع الأخطاء من النموذج
         errors = {field.name: field.errors[0] for field in form if field.errors}
-        return jsonify({'message': 'بيانات غير صالحة', 'errors': errors}), 400
+        return jsonify({'success': False, 'message': 'بيانات غير صالحة', 'errors': errors}), 400
 
 @admin.route('/admin/deactivate_discount/<int:discount_id>', methods=['POST'])
 @admin_login_required
