@@ -1,6 +1,6 @@
 import os
 import pymysql
-from flask import Flask, session
+from flask import Flask, session, request, redirect
 from config import Config
 from .extensions import db, csrf
 from flask_migrate import Migrate, upgrade
@@ -81,6 +81,11 @@ def create_app(config_class=Config):
     # مُعالج طلب قبل بداية الطلبات
     @app.before_request
     def before_request():
+        # إعادة توجيه من sultanprints.studio إلى www.sultanprints.studio
+        if request.host == 'sultanprints.studio':
+            new_url = request.url.replace('sultanprints.studio', 'www.sultanprints.studio', 1)
+            return redirect(new_url, code=301)
+        
         # توليد معرّف جلسة جديد عند عدم وجوده
         if 'user_id' not in session:
             session['user_id'] = str(uuid.uuid4())
