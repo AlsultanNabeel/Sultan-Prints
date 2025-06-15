@@ -2,7 +2,7 @@ import os
 import secrets
 import time
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app, jsonify, abort
-from app.models import Product, Design, Order, OrderStatus, Setting, Page, Announcement, FAQ, Governorate
+from app.models import Product, Design, Order, OrderStatus, Setting, Page, Announcement, FAQ, Governorate, CartItem, OrderItem
 from app.forms import ProductForm, AdminLoginForm, OrderStatusForm, SettingsForm, PageForm, AnnouncementForm, FAQForm, GovernorateForm
 from app import db
 from app.utils import save_image
@@ -305,9 +305,44 @@ def edit_product(product_id):
 @csrf.exempt  # إعفاء هذا المسار من التحقق من CSRF
 def delete_product(product_id):
     product = Product.query.get_or_404(product_id)
-    db.session.delete(product)
-    db.session.commit()
-    flash('تم حذف المنتج بنجاح', 'success')
+    
+    try:
+        # حذف عناصر سلة التسوق المرتبطة بالمنتج أولاً
+        cart_items = CartItem.query.filter_by(product_id=product_id).all()
+        for cart_item in cart_items:
+            db.session.delete(cart_item)
+        
+        # حذف عناصر الطلبات المرتبطة بالمنتج
+        order_items = OrderItem.query.filter_by(product_id=product_id).all()
+        for order_item in order_items:
+            db.session.delete(order_item)
+        
+        # حذف السجلات من جدول order_product (many-to-many relationship)
+        from app.models import order_product
+        db.session.execute(
+            order_product.delete().where(order_product.c.product_id == product_id)
+        )
+        
+        # حذف ملف صورة المنتج إذا كان موجوداً
+        if product.image:
+            image_path = os.path.join(current_app.static_folder, product.image)
+            if os.path.exists(image_path):
+                try:
+                    os.remove(image_path)
+                    current_app.logger.info(f"Deleted product image: {image_path}")
+                except Exception as e:
+                    current_app.logger.warning(f"Could not delete product image {image_path}: {e}")
+        
+        # حذف المنتج نفسه
+        db.session.delete(product)
+        db.session.commit()
+        flash('تم حذف المنتج بنجاح', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ أثناء حذف المنتج: {str(e)}', 'danger')
+        current_app.logger.error(f"Error deleting product {product_id}: {e}")
+    
     return redirect(url_for('admin.products'))
 
 # إدارة التصاميم
