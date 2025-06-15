@@ -248,13 +248,8 @@ def checkout():
             'total_amount': final_total, # Save the final total including delivery
         }
         
-        # إضافة archived فقط إذا كان العمود موجود في قاعدة البيانات
-        try:
-            # محاولة إنشاء الطلب مع archived
-            order = Order(**order_data, archived=False)
-        except Exception as e:
-            # إذا فشل، إنشاء الطلب بدون archived
-            order = Order(**order_data)
+        # إنشاء الطلب بدون archived لتجنب مشاكل قاعدة البيانات
+        order = Order(**order_data)
         
         db.session.add(order)
         db.session.flush()  # حتى يتوفر order.id

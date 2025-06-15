@@ -90,7 +90,7 @@ class Order(db.Model):
     vodafone_receipt = db.Column(db.String(255), nullable=True)
     total_amount = db.Column(db.Float, nullable=False, default=0)
     status = db.Column(db.String(32), default='pending')
-    archived = db.Column(db.Boolean, default=False)
+    archived = db.Column(db.Boolean, default=False, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     order_items = db.relationship('OrderItem', backref='order', lazy='dynamic', cascade="all, delete-orphan")
     status_history = db.relationship('OrderStatus', backref='order', lazy='dynamic', order_by='OrderStatus.timestamp.desc()', cascade="all, delete-orphan")
