@@ -69,19 +69,27 @@ def custom_design():
             db.session.commit()
             
             # Create order for custom design
-            order = Order(
-                reference=''.join(random.choices(string.ascii_uppercase + string.digits, k=8)),
-                customer_name=request.form.get('customer_name', ''),
-                customer_email=request.form.get('customer_email', ''),
-                customer_phone=request.form.get('customer_phone', ''),
-                address=request.form.get('address', ''),
-                governorate_id=request.form.get('governorate_id'),
-                delivery_fee=50.0,  # Fixed delivery fee
-                payment_method='vodafone_cash',
-                total_amount=600.0,  # Fixed price for custom design
-                status='pending',
-                archived=False  # إضافة قيمة افتراضية لعمود archived
-            )
+            order_data = {
+                'reference': ''.join(random.choices(string.ascii_uppercase + string.digits, k=8)),
+                'customer_name': request.form.get('customer_name', ''),
+                'customer_email': request.form.get('customer_email', ''),
+                'customer_phone': request.form.get('customer_phone', ''),
+                'address': request.form.get('address', ''),
+                'governorate_id': request.form.get('governorate_id'),
+                'delivery_fee': 50.0,  # Fixed delivery fee
+                'payment_method': 'vodafone_cash',
+                'total_amount': 600.0,  # Fixed price for custom design
+                'status': 'pending'
+            }
+            
+            # إضافة archived فقط إذا كان العمود موجود في قاعدة البيانات
+            try:
+                # محاولة إنشاء الطلب مع archived
+                order = Order(**order_data, archived=False)
+            except Exception as e:
+                # إذا فشل، إنشاء الطلب بدون archived
+                order = Order(**order_data)
+            
             db.session.add(order)
             db.session.commit()
             

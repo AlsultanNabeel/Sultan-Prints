@@ -237,17 +237,25 @@ def checkout():
         final_total = products_total + delivery_fee
 
         # Order creation logic without discount
-        order = Order(
-            customer_name=form.name.data,
-            customer_email=form.email.data,
-            customer_phone=form.phone.data,
-            address=form.address.data,
-            governorate_id=selected_governorate_id,
-            delivery_fee=delivery_fee,
-            payment_method=form.payment_method.data,
-            total_amount=final_total, # Save the final total including delivery
-            archived=False  # إضافة قيمة افتراضية لعمود archived
-        )
+        order_data = {
+            'customer_name': form.name.data,
+            'customer_email': form.email.data,
+            'customer_phone': form.phone.data,
+            'address': form.address.data,
+            'governorate_id': selected_governorate_id,
+            'delivery_fee': delivery_fee,
+            'payment_method': form.payment_method.data,
+            'total_amount': final_total, # Save the final total including delivery
+        }
+        
+        # إضافة archived فقط إذا كان العمود موجود في قاعدة البيانات
+        try:
+            # محاولة إنشاء الطلب مع archived
+            order = Order(**order_data, archived=False)
+        except Exception as e:
+            # إذا فشل، إنشاء الطلب بدون archived
+            order = Order(**order_data)
+        
         db.session.add(order)
         db.session.flush()  # حتى يتوفر order.id
 
