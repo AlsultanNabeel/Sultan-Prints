@@ -246,6 +246,7 @@ def checkout():
             delivery_fee=delivery_fee,
             payment_method=form.payment_method.data,
             total_amount=final_total, # Save the final total including delivery
+            archived=False  # إضافة قيمة افتراضية لعمود archived
         )
         db.session.add(order)
         db.session.flush()  # حتى يتوفر order.id

@@ -79,7 +79,8 @@ def custom_design():
                 delivery_fee=50.0,  # Fixed delivery fee
                 payment_method='vodafone_cash',
                 total_amount=600.0,  # Fixed price for custom design
-                status='pending'
+                status='pending',
+                archived=False  # إضافة قيمة افتراضية لعمود archived
             )
             db.session.add(order)
             db.session.commit()
