@@ -261,12 +261,12 @@
             if (response.ok) {
                 showToast(data.message || 'تمت إضافة المنتج بنجاح!', 'success');
                 // Update cart count in the navbar
-                const cartCountElement = document.getElementById('cart-count');
+                const cartCountElement = document.getElementById('cartCount');
                 if (cartCountElement) {
                     cartCountElement.textContent = data.cart_count;
-                    cartCountElement.closest('.cart-icon-wrapper').classList.add('cart-updated');
+                    cartCountElement.classList.add('cart-updated');
                     setTimeout(() => {
-                         cartCountElement.closest('.cart-icon-wrapper').classList.remove('cart-updated');
+                         cartCountElement.classList.remove('cart-updated');
                     }, 600);
                 }
             } else {

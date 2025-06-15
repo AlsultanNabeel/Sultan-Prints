@@ -1,0 +1,101 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<div class="container py-4">
+  <h2 class="fw-bold mb-4">إدارة الكوبونات</h2>
+  <button class="btn btn-success mb-4" onclick="showAddCouponModal()">إضافة كوبون جديد</button>
+  <div class="row">
+    {% for coupon in coupons %}
+    <div class="col-md-4 mb-3">
+      <div class="card shadow-sm border-{{ 'success' if coupon.is_active else 'secondary' }}">
+        <div class="card-body">
+          <h5 class="card-title mb-2"><span class="badge bg-primary fs-6">{{ coupon.code }}</span></h5>
+          <p class="mb-1">النوع: <b>{{ 'نسبة' if coupon.type == 'percentage' else 'مبلغ ثابت' }}</b></p>
+          <p class="mb-1">القيمة: <b>{{ coupon.value }}{% if coupon.type == 'percentage' %}%{% else %} جنيه{% endif %}</b></p>
+          <p class="mb-1">الحالة: <span class="badge bg-{{ 'success' if coupon.is_active else 'secondary' }}">{{ 'نشط' if coupon.is_active else 'غير نشط' }}</span></p>
+          <p class="mb-1">تاريخ الانتهاء: {{ coupon.end_date.strftime('%Y-%m-%d') }}</p>
+          <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-outline-primary btn-sm" onclick="editCoupon({{ coupon.id }})">تعديل</button>
+            <button class="btn btn-outline-danger btn-sm" onclick="deactivateCoupon({{ coupon.id }})">تعطيل</button>
+            <button class="btn btn-outline-dark btn-sm" onclick="deleteCoupon({{ coupon.id }})">حذف</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Modal لإضافة كوبون جديد -->
+<div class="modal fade" id="addCouponModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="add-coupon-form">
+        <div class="modal-header">
+          <h5 class="modal-title">إضافة كوبون جديد</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2">
+            <label class="form-label">الكود</label>
+            <input type="text" name="code" class="form-control" required maxlength="32">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">النوع</label>
+            <select name="type" class="form-select" required>
+              <option value="percentage">نسبة مئوية</option>
+              <option value="fixed">مبلغ ثابت</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">القيمة</label>
+            <input type="number" name="value" class="form-control" required min="1">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">تاريخ الانتهاء</label>
+            <input type="date" name="end_date" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">حفظ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function showAddCouponModal() {
+  var modal = new bootstrap.Modal(document.getElementById('addCouponModal'));
+  modal.show();
+}
+
+document.getElementById('add-coupon-form').onsubmit = async function(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = Object.fromEntries(new FormData(form));
+  const res = await fetch('/admin/coupons/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (res.ok) {
+    location.reload();
+  } else {
+    alert('حدث خطأ أثناء إضافة الكوبون');
+  }
+};
+
+function deactivateCoupon(id) {
+  if (!confirm('هل أنت متأكد من تعطيل الكوبون؟')) return;
+  fetch(`/admin/coupons/${id}/deactivate`, {method:'POST'}).then(()=>location.reload());
+}
+function deleteCoupon(id) {
+  if (!confirm('هل أنت متأكد من حذف الكوبون نهائيًا؟')) return;
+  fetch(`/admin/coupons/${id}/delete`, {method:'POST'}).then(()=>location.reload());
+}
+function editCoupon(id) {
+  // يمكن إضافة نافذة تعديل لاحقًا بنفس النمط
+  alert('ميزة التعديل قيد التطوير');
+}
+</script>
+{% endblock %}

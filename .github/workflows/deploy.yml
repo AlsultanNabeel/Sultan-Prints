@@ -1,0 +1,28 @@
+name: Deploy & Auto-Migrate
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run migrations
+        env:
+          FLASK_APP: manage.py
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: flask db upgrade
+      - name: Deploy to server (example)
+        run: echo "هنا تضع أمر النشر الفعلي للسيرفر مثل scp أو rsync أو استخدام DigitalOcean CLI"

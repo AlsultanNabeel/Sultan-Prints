@@ -41,6 +41,7 @@
                             <i class="fas fa-edit"></i> تعديل
                         </a>
                         <form action="{{ url_for('admin.delete_faq', faq_id=faq.id) }}" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف هذا السؤال؟');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-outline-danger">
                                 <i class="fas fa-trash"></i> حذف
                             </button>
@@ -56,4 +57,4 @@
         </table>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

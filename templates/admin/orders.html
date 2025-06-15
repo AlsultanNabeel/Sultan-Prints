@@ -6,7 +6,13 @@
 <section class="admin-orders py-5">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="fw-bold">إدارة الطلبات</h1>
+            <h1 class="h3 mb-0 text-gray-800">إدارة الطلبات</h1>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="showArchived" {% if show_archived %}checked{% endif %}>
+                <label class="form-check-label" for="showArchived">
+                    عرض الطلبات المؤرشفة
+                </label>
+            </div>
             <a href="{{ url_for('admin.products') }}" class="btn btn-outline-primary">
                 <i class="fas fa-arrow-right me-2"></i> العودة للمنتجات
             </a>
@@ -20,6 +26,53 @@
             
             <!-- Admin Content -->
             <div class="col-lg-9">
+                <!-- Filters -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">تصفية الطلبات</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="filterForm" method="GET">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="status-filter" class="form-label">حالة الطلب</label>
+                                    <select class="form-select" id="status-filter" name="status">
+                                        <option value="">الكل</option>
+                                        <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المعالجة</option>
+                                        <option value="processing" {% if request.args.get('status') == 'processing' %}selected{% endif %}>قيد التجهيز</option>
+                                        <option value="printing" {% if request.args.get('status') == 'printing' %}selected{% endif %}>قيد الطباعة</option>
+                                        <option value="shipped" {% if request.args.get('status') == 'shipped' %}selected{% endif %}>تم الشحن</option>
+                                        <option value="out_for_delivery" {% if request.args.get('status') == 'out_for_delivery' %}selected{% endif %}>خارج للتوصيل</option>
+                                        <option value="delivered" {% if request.args.get('status') == 'delivered' %}selected{% endif %}>تم التسليم</option>
+                                        <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>ملغي</option>
+                                        <option value="refunded" {% if request.args.get('status') == 'refunded' %}selected{% endif %}>تم استرداد المبلغ</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="payment-filter" class="form-label">طريقة الدفع</label>
+                                    <select class="form-select" id="payment-filter" name="payment_method">
+                                        <option value="">الكل</option>
+                                        <option value="cod" {% if request.args.get('payment_method') == 'cod' %}selected{% endif %}>الدفع عند الاستلام</option>
+                                        <option value="vodafone_cash" {% if request.args.get('payment_method') == 'vodafone_cash' %}selected{% endif %}>فودافون كاش</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="date-from" class="form-label">من تاريخ</label>
+                                    <input type="date" class="form-control" id="date-from" name="date_from" value="{{ request.args.get('date_from', '') }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="date-to" class="form-label">إلى تاريخ</label>
+                                    <input type="date" class="form-control" id="date-to" name="date_to" value="{{ request.args.get('date_to', '') }}">
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">تطبيق التصفية</button>
+                                    <a href="{{ url_for('admin.orders') }}" class="btn btn-outline-secondary">إعادة ضبط</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header bg-white">
                         <h5 class="mb-0">قائمة الطلبات</h5>
@@ -55,14 +108,22 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if order.order_status == 'pending' %}
+                                            {% if order.status == 'pending' %}
                                             <span class="badge bg-warning">قيد المعالجة</span>
-                                            {% elif order.order_status == 'shipped' %}
+                                            {% elif order.status == 'processing' %}
+                                            <span class="badge bg-info">قيد التجهيز</span>
+                                            {% elif order.status == 'printing' %}
+                                            <span class="badge bg-primary">قيد الطباعة</span>
+                                            {% elif order.status == 'shipped' %}
                                             <span class="badge bg-info">تم الشحن</span>
-                                            {% elif order.order_status == 'delivered' %}
+                                            {% elif order.status == 'out_for_delivery' %}
+                                            <span class="badge bg-warning">خارج للتوصيل</span>
+                                            {% elif order.status == 'delivered' %}
                                             <span class="badge bg-success">تم التسليم</span>
-                                            {% elif order.order_status == 'cancelled' %}
+                                            {% elif order.status == 'cancelled' %}
                                             <span class="badge bg-danger">ملغي</span>
+                                            {% elif order.status == 'refunded' %}
+                                            <span class="badge bg-secondary">تم استرداد المبلغ</span>
                                             {% endif %}
                                         </td>
                                         <td>
@@ -75,9 +136,28 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <a href="{{ url_for('admin.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
-                                                عرض
-                                            </a>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('admin.order_detail', order_id=order.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> عرض التفاصيل
+                                                </a>
+                                                {% if not order.archived %}
+                                                <form method="POST" action="{{ url_for('admin.archive_order', order_id=order.id) }}" 
+                                                      style="display: inline;">
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning" 
+                                                            onclick="return confirm('هل أنت متأكد من أرشفة هذا الطلب؟')">
+                                                        <i class="fas fa-archive"></i> أرشفة
+                                                    </button>
+                                                </form>
+                                                {% else %}
+                                                <form method="POST" action="{{ url_for('admin.unarchive_order', order_id=order.id) }}" 
+                                                      style="display: inline;">
+                                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                                        <i class="fas fa-undo"></i> إلغاء الأرشفة
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                            </div>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -93,52 +173,36 @@
                         {% endif %}
                     </div>
                 </div>
-                
-                <!-- Filters -->
-                <div class="card mt-4">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">تصفية الطلبات</h5>
-                    </div>
-                    <div class="card-body">
-                        <form>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="status-filter" class="form-label">حالة الطلب</label>
-                                    <select class="form-select" id="status-filter">
-                                        <option value="">الكل</option>
-                                        <option value="pending">قيد المعالجة</option>
-                                        <option value="shipped">تم الشحن</option>
-                                        <option value="delivered">تم التسليم</option>
-                                        <option value="cancelled">ملغي</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="payment-filter" class="form-label">حالة الدفع</label>
-                                    <select class="form-select" id="payment-filter">
-                                        <option value="">الكل</option>
-                                        <option value="paid">مدفوع</option>
-                                        <option value="pending">قيد الانتظار</option>
-                                        <option value="cancelled">ملغي</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="date-from" class="form-label">من تاريخ</label>
-                                    <input type="date" class="form-control" id="date-from">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="date-to" class="form-label">إلى تاريخ</label>
-                                    <input type="date" class="form-control" id="date-to">
-                                </div>
-                                <div class="col-12">
-                                    <button type="submit" class="btn btn-primary">تطبيق التصفية</button>
-                                    <button type="reset" class="btn btn-outline-secondary">إعادة ضبط</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit filters when changed
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterInputs = document.querySelectorAll('#filterForm input, #filterForm select');
+        filterInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                document.getElementById('filterForm').submit();
+            });
+        });
+        
+        // Handle archived orders toggle
+        const showArchivedCheckbox = document.getElementById('showArchived');
+        if (showArchivedCheckbox) {
+            showArchivedCheckbox.addEventListener('change', function() {
+                const currentUrl = new URL(window.location);
+                if (this.checked) {
+                    currentUrl.searchParams.set('show_archived', 'true');
+                } else {
+                    currentUrl.searchParams.delete('show_archived');
+                }
+                window.location.href = currentUrl.toString();
+            });
+        }
+    });
+</script>
 {% endblock %}

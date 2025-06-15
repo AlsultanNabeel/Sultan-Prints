@@ -15,20 +15,7 @@
         <div class="row">
             <!-- Admin Sidebar -->
             <div class="col-lg-3 mb-4">
-                <div class="list-group">
-                    <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-box me-2"></i> المنتجات
-                    </a>
-                    <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action active">
-                        <i class="fas fa-shopping-bag me-2"></i> الطلبات
-                    </a>
-                    <a href="{{ url_for('admin.designs') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-palette me-2"></i> التصاميم
-                    </a>
-                    <a href="{{ url_for('admin.logout') }}" class="list-group-item list-group-item-action text-danger">
-                        <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
-                    </a>
-                </div>
+                {% include 'admin/_sidebar.html' %}
             </div>
             
             <!-- Admin Content -->
@@ -199,18 +186,12 @@
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between">
                                 <span>إجمالي المنتجات</span>
-                                <strong>{{ "{:,.2f}".format(order.total_amount + order.discount_amount - 50 if (order.total_amount + order.discount_amount - 50) < 500 else order.total_amount + order.discount_amount) }} جنيه</strong>
+                                <strong>{{ "{:,.2f}".format(order.total_amount) }} جنيه</strong>
                             </li>
                             <li class="list-group-item d-flex justify-content-between">
                                 <span>رسوم الشحن</span>
-                                <strong>{{ "{:,.2f}".format(50 if (order.total_amount + order.discount_amount - 50) < 500 else 0) }} جنيه</strong>
+                                <strong>{{ "{:,.2f}".format(order.delivery_fee) }} جنيه</strong>
                             </li>
-                            {% if order.discount_code %}
-                            <li class="list-group-item d-flex justify-content-between text-success">
-                                <span>الخصم ({{ order.discount_code }})</span>
-                                <strong>- {{ "{:,.2f}".format(order.discount_amount) }} جنيه</strong>
-                            </li>
-                            {% endif %}
                             <li class="list-group-item d-flex justify-content-between h5">
                                 <strong>الإجمالي النهائي</strong>
                                 <strong>{{ "{:,.2f}".format(order.total_amount) }} جنيه</strong>

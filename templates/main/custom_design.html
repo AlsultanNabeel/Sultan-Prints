@@ -1,84 +1,498 @@
 {% extends 'base.html' %}
 
-{% block title %}صمم تيشيرتك الخاص - متجر فلسطين براند{% endblock %}
+{% block title %}صمم تيشيرتك الخاص - Sultan Prints{% endblock %}
+
+{% block extra_css %}
+<style>
+.custom-design-section {
+    background: white;
+    min-height: 100vh;
+    padding: 80px 0;
+}
+
+.design-preview-container {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+    border: 2px dashed #ddd;
+}
+
+.design-preview-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.tshirt-preview {
+    max-width: 300px;
+    margin: 0 auto;
+    display: block;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+.tshirt-preview:hover {
+    transform: scale(1.05);
+}
+
+.design-form {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.upload-area {
+    border: 3px dashed #667eea;
+    border-radius: 15px;
+    padding: 40px 20px;
+    text-align: center;
+    background: #f8f9ff;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.upload-area:hover {
+    border-color: #764ba2;
+    background: #f0f2ff;
+}
+
+.upload-area.dragover {
+    border-color: #764ba2;
+    background: #e8ebff;
+    transform: scale(1.02);
+}
+
+.color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.color-option.active {
+    border-color: #667eea;
+    transform: scale(1.2);
+}
+
+.color-option.active::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    font-size: 18px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.color-option[data-color="white"].active::after {
+    color: #333;
+}
+
+.color-option[data-color="black"].active::after {
+    color: white;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.size-option {
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    padding: 15px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.size-option.active {
+    border-color: #667eea;
+    background: #667eea;
+    color: white;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loading-spinner {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.step {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #ddd;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin: 0 10px;
+    position: relative;
+}
+
+.step.active {
+    background: #667eea;
+}
+
+.step.completed {
+    background: #28a745;
+}
+
+.step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 2px;
+    background: #ddd;
+}
+
+.step.completed:not(:last-child)::after {
+    background: #28a745;
+}
+
+.preview-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    background: #f8f9fa;
+    border: 2px dashed #ddd;
+    border-radius: 15px;
+    color: #6c757d;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<section class="new-custom-design py-5">
+<section class="custom-design-section">
     <div class="container">
-        <div class="row align-items-center gx-lg-5">
-            <div class="col-lg-6">
-                <div class="tshirt-design-preview position-relative">
-                    <img src="{{ url_for('static', filename='images/custom-tshirt-placeholder.png') }}" alt="T-shirt with your design" id="tshirt-preview" class="img-fluid rounded-3 shadow-lg mb-4 mb-lg-0">
-                    <div id="design-placeholder-text" class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none;">
-                        <h3 class="text-muted">تصميمك هنا</h3>
-                    </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="text-center mb-5">
+                    <h1 class="display-4 fw-bold mb-3">صمم تيشيرتك الخاص</h1>
+                    <p class="lead">حوّل فكرتك إلى حقيقة واطبع تصميمك الخاص على تيشيرت عالي الجودة</p>
                 </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="custom-design-form p-4 p-lg-5 bg-light rounded-3">
-                    <h2 class="fw-bold mb-3">ارفع تصميمك</h2>
-                    <p class="text-muted mb-4">ارفع تصميمك أو صورتك الآن، واختر المقاس واللون، واترك الباقي علينا لنطبع لك تيشيرت أحلامك!</p>
-                    <form method="post" action="{{ url_for('main.upload_custom_design') }}" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
-                        <div class="mb-3">
-                            <label for="designImage" class="form-label fw-semibold">1. ارفع صورة التصميم</label>
-                            <input type="file" class="form-control form-control-lg" id="designImage" name="design_image" accept="image/*" required onchange="previewImage(event)">
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="size" class="form-label fw-semibold">2. اختر المقاس</label>
-                                <select class="form-select form-select-lg" id="size" name="size" required>
-                                    <option value="S">S</option>
-                                    <option value="M" selected>M</option>
-                                    <option value="L">L</option>
-                                    <option value="XL">XL</option>
-                                    <option value="XXL">XXL</option>
-                                </select>
+                
+                <!-- Step Indicator -->
+                <div class="step-indicator">
+                    <div class="step active" id="step1">1</div>
+                    <div class="step" id="step2">2</div>
+                    <div class="step" id="step3">3</div>
+                    <div class="step" id="step4">4</div>
+                    <div class="step" id="step5">5</div>
+                </div>
+                
+                <div class="row g-4">
+                    <!-- Design Preview -->
+                    <div class="col-lg-5">
+                        <div class="design-preview-container">
+                            <h3 class="text-center mb-4">معاينة التصميم</h3>
+                            <div class="preview-placeholder" id="preview-placeholder">
+                                <p>سيظهر تصميمك هنا</p>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">3. اختر اللون</label>
-                                <div class="d-flex gap-3 pt-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="color" id="colorWhite" value="white" checked>
-                                        <label class="form-check-label" for="colorWhite">أبيض</label>
+                            <img src="" alt="T-shirt with your design" 
+                                 id="tshirt-preview" 
+                                 class="tshirt-preview d-none">
+                        </div>
+                    </div>
+                    
+                    <!-- Design Form -->
+                    <div class="col-lg-7">
+                        <div class="design-form">
+                            <form method="post" action="{{ url_for('main.custom_design') }}" enctype="multipart/form-data" id="designForm">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                
+                                <!-- Step 1: Upload Design -->
+                                <div class="step-content" id="step1-content">
+                                    <h4 class="mb-3">1. ارفع تصميمك</h4>
+                                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('design_file').click()">
+                                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                        <h5>اضغط هنا لرفع التصميم</h5>
+                                        <p class="text-muted">أو اسحب وأفلت الملف هنا</p>
+                                        <small class="text-muted">PNG, JPG, JPEG حتى 5MB</small>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="color" id="colorBlack" value="black">
-                                        <label class="form-check-label" for="colorBlack">أسود</label>
+                                    <input type="file" class="d-none" id="design_file" name="design_file" accept="image/*" required>
+                                    <div class="mt-3">
+                                        <button type="button" class="btn btn-primary" onclick="nextStep()" id="nextStep1" disabled>
+                                            التالي <i class="fas fa-arrow-left ms-2"></i>
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
+                                
+                                <!-- Step 2: Customer Information -->
+                                <div class="step-content d-none" id="step2-content">
+                                    <h4 class="mb-3">2. بيانات العميل</h4>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="customer_name" class="form-label">الاسم الكامل *</label>
+                                            <input type="text" class="form-control" id="customer_name" name="customer_name" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="customer_email" class="form-label">البريد الإلكتروني *</label>
+                                            <input type="email" class="form-control" id="customer_email" name="customer_email" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="customer_phone" class="form-label">رقم الهاتف *</label>
+                                            <input type="tel" class="form-control" id="customer_phone" name="customer_phone" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="governorate_id" class="form-label">المحافظة *</label>
+                                            <select class="form-select" id="governorate_id" name="governorate_id" required>
+                                                <option value="">اختر المحافظة</option>
+                                                {% for governorate in governorates %}
+                                                <option value="{{ governorate.id }}">{{ governorate.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="address" class="form-label">العنوان التفصيلي *</label>
+                                            <textarea class="form-control" id="address" name="address" rows="3" required 
+                                                      placeholder="الشارع، المبنى، الشقة، إلخ..."></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 d-flex justify-content-between">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
+                                            <i class="fas fa-arrow-right me-2"></i>السابق
+                                        </button>
+                                        <button type="button" class="btn btn-primary" onclick="nextStep()">
+                                            التالي <i class="fas fa-arrow-left ms-2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Step 3: Choose Size -->
+                                <div class="step-content d-none" id="step3-content">
+                                    <h4 class="mb-3">3. اختر المقاس</h4>
+                                    <div class="row g-3">
+                                        <div class="col-3">
+                                            <div class="size-option" data-size="S">S</div>
+                                        </div>
+                                        <div class="col-3">
+                                            <div class="size-option active" data-size="M">M</div>
+                                        </div>
+                                        <div class="col-3">
+                                            <div class="size-option" data-size="L">L</div>
+                                        </div>
+                                        <div class="col-3">
+                                            <div class="size-option" data-size="XL">XL</div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="size" id="selectedSize" value="M">
+                                    <div class="mt-4 d-flex justify-content-between">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
+                                            <i class="fas fa-arrow-right me-2"></i>السابق
+                                        </button>
+                                        <button type="button" class="btn btn-primary" onclick="nextStep()">
+                                            التالي <i class="fas fa-arrow-left ms-2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Step 4: Choose Color -->
+                                <div class="step-content d-none" id="step4-content">
+                                    <h4 class="mb-3">4. اختر اللون</h4>
+                                    <div class="d-flex gap-3 mb-4">
+                                        <div class="color-option active" style="background: white; border: 1px solid #ddd;" data-color="white"></div>
+                                        <div class="color-option" style="background: black;" data-color="black"></div>
+                                    </div>
+                                    <input type="hidden" name="color" id="selectedColor" value="white">
+                                    <div class="mt-4 d-flex justify-content-between">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
+                                            <i class="fas fa-arrow-right me-2"></i>السابق
+                                        </button>
+                                        <button type="button" class="btn btn-primary" onclick="nextStep()">
+                                            التالي <i class="fas fa-arrow-left ms-2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Step 5: Additional Details -->
+                                <div class="step-content d-none" id="step5-content">
+                                    <h4 class="mb-3">5. تفاصيل إضافية</h4>
+                                    <div class="mb-3">
+                                        <label for="description" class="form-label">ملاحظات حول التصميم (اختياري)</label>
+                                        <textarea class="form-control" id="description" name="description" rows="4" 
+                                                  placeholder="أي ملاحظات حول التصميم، مكان الطباعة، إلخ."></textarea>
+                                    </div>
+                                    <div class="alert alert-info">
+                                        <h6>ملاحظة مهمة:</h6>
+                                        <p class="mb-0">سعر التصميم المخصص: <strong>600 جنيه</strong> + رسوم التوصيل</p>
+                                    </div>
+                                    <div class="mt-4 d-flex justify-content-between">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
+                                            <i class="fas fa-arrow-right me-2"></i>السابق
+                                        </button>
+                                        <button type="submit" class="btn btn-success btn-lg">
+                                            <i class="fas fa-paper-plane me-2"></i>إرسال الطلب
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-
-                        <div class="mb-3">
-                            <label for="designDetails" class="form-label fw-semibold">4. تفاصيل إضافية (اختياري)</label>
-                            <textarea class="form-control form-control-lg" id="designDetails" name="details" rows="2" placeholder="أي ملاحظات حول التصميم، مكان الطباعة، إلخ."></textarea>
-                        </div>
-
-                        <div class="d-grid">
-                           <button type="submit" class="btn btn-primary btn-lg fw-bold">إرسال الطلب</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+        <h5>جاري رفع التصميم...</h5>
+        <p class="text-muted">يرجى الانتظار</p>
+    </div>
+</div>
+
 <script>
-function previewImage(event) {
-    const reader = new FileReader();
-    reader.onload = function(){
-        const output = document.getElementById('tshirt-preview');
-        output.src = reader.result;
-        const placeholderText = document.getElementById('design-placeholder-text');
-        if (placeholderText) {
-            placeholderText.style.display = 'none';
+let currentStep = 1;
+const totalSteps = 5;
+
+// File upload handling
+document.getElementById('design_file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        previewImage(file);
+        document.getElementById('nextStep1').disabled = false;
+    }
+});
+
+// Drag and drop functionality
+const uploadArea = document.getElementById('uploadArea');
+
+uploadArea.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const file = files[0];
+        if (file.type.startsWith('image/')) {
+            document.getElementById('design_file').files = files;
+            previewImage(file);
+            document.getElementById('nextStep1').disabled = false;
         }
+    }
+});
+
+function previewImage(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const output = document.getElementById('tshirt-preview');
+        const placeholder = document.getElementById('preview-placeholder');
+        
+        output.src = e.target.result;
+        output.classList.remove('d-none');
+        placeholder.classList.add('d-none');
     };
-    reader.readAsDataURL(event.target.files[0]);
+    reader.readAsDataURL(file);
 }
+
+function nextStep() {
+    if (currentStep < totalSteps) {
+        document.getElementById(`step${currentStep}-content`).classList.add('d-none');
+        document.getElementById(`step${currentStep}`).classList.remove('active');
+        document.getElementById(`step${currentStep}`).classList.add('completed');
+        
+        currentStep++;
+        
+        document.getElementById(`step${currentStep}-content`).classList.remove('d-none');
+        document.getElementById(`step${currentStep}`).classList.add('active');
+    }
+}
+
+function prevStep() {
+    if (currentStep > 1) {
+        document.getElementById(`step${currentStep}-content`).classList.add('d-none');
+        document.getElementById(`step${currentStep}`).classList.remove('active');
+        
+        currentStep--;
+        
+        document.getElementById(`step${currentStep}-content`).classList.remove('d-none');
+        document.getElementById(`step${currentStep}`).classList.remove('completed');
+        document.getElementById(`step${currentStep}`).classList.add('active');
+    }
+}
+
+// Size selection
+document.querySelectorAll('.size-option').forEach(option => {
+    option.addEventListener('click', function() {
+        document.querySelectorAll('.size-option').forEach(opt => opt.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('selectedSize').value = this.dataset.size;
+    });
+});
+
+// Color selection
+document.querySelectorAll('.color-option').forEach(option => {
+    option.addEventListener('click', function() {
+        document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('selectedColor').value = this.dataset.color;
+    });
+});
+
+// Form submission
+document.getElementById('designForm').addEventListener('submit', function(e) {
+    document.getElementById('loadingOverlay').classList.add('show');
+});
 </script>
 {% endblock %} 

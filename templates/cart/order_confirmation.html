@@ -29,9 +29,11 @@
                                 <div class="col-md-4 fw-bold">طريقة الدفع:</div>
                                 <div class="col-md-8">
                                     {% if order.payment_method == 'vodafone_cash' %}
-                                        فودافون كاش
+                                        <span class="badge bg-danger">فودافون كاش</span>
+                                    {% elif order.payment_method == 'cash_on_delivery' or order.payment_method == 'cod' %}
+                                        <span class="badge bg-secondary">الدفع عند الاستلام</span>
                                     {% else %}
-                                        الدفع عند الاستلام
+                                        <span class="badge bg-info">{{ order.payment_method }}</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -62,7 +64,8 @@
                                         <th>المقاس</th>
                                         <th>اللون</th>
                                         <th>الكمية</th>
-                                        <th>السعر</th>
+                                        <th>سعر الوحدة</th>
+                                        <th>الإجمالي</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -70,9 +73,10 @@
                                     <tr>
                                         <td>{{ item.product_name }}</td>
                                         <td>{{ item.size|default('غير محدد') }}</td>
-                                        <td>{{ item.color }}</td>
+                                        <td>{{ item.color|default('غير محدد') }}</td>
                                         <td>{{ item.quantity }}</td>
                                         <td>{{ item.price }} جنيه</td>
+                                        <td>{{ "{:.2f}".format(item.price * item.quantity) }} جنيه</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -87,7 +91,7 @@
                         
                         <div class="alert alert-info mt-4">
                             <i class="fas fa-info-circle me-2"></i>
-                            تم إرسال تفاصيل الطلب إلى بريدك الإلكتروني. يمكنك متابعة حالة طلبك من خلال صفحة "حسابي".
+                            تم إرسال تفاصيل الطلب إلى بريدك الإلكتروني. يمكنك متابعة حالة طلبك من خلال صفحة تتبع الطلب على موقعنا باستخدام رقم الطلب.
                         </div>
                         
                         <div class="mt-4">

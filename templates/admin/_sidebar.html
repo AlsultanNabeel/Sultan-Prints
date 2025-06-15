@@ -2,7 +2,7 @@
     <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action {% if 'products' in request.endpoint %}active{% endif %}">
         <i class="fas fa-box me-2"></i> المنتجات
     </a>
-    <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action {% if 'orders' in request.endpoint %}active{% endif %}">
+    <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action {% if 'orders' in request.endpoint or 'order_detail' in request.endpoint %}active{% endif %}">
         <i class="fas fa-shopping-bag me-2"></i> الطلبات
     </a>
     <a href="{{ url_for('admin.designs') }}" class="list-group-item list-group-item-action {% if 'designs' in request.endpoint %}active{% endif %}">
@@ -10,9 +10,6 @@
     </a>
     <a href="{{ url_for('admin.custom_designs') }}" class="list-group-item list-group-item-action {% if 'custom_designs' in request.endpoint %}active{% endif %}">
         <i class="fas fa-upload me-2"></i> التصاميم المخصصة
-    </a>
-    <a href="{{ url_for('admin.discounts') }}" class="list-group-item list-group-item-action {% if 'discounts' in request.endpoint %}active{% endif %}">
-        <i class="fas fa-tags me-2"></i> أكواد الخصم
     </a>
     <a href="{{ url_for('admin.announcements') }}" class="list-group-item list-group-item-action {% if 'announcements' in request.endpoint %}active{% endif %}">
         <i class="fas fa-bullhorn me-2"></i> إدارة الإعلانات

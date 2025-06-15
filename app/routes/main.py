@@ -1,5 +1,5 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
-from app.models import Product, Design, Contact, Order, Page, Setting, Announcement, FAQ
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, abort
+from app.models import Product, Design, Contact, Order, Page, Setting, Announcement, FAQ, CustomDesign, Governorate
 from app.forms import ContactForm
 from app import db
 from app.utils.email_utils import send_email
@@ -9,8 +9,17 @@ import uuid
 from werkzeug.utils import secure_filename
 from flask_wtf.file import FileAllowed
 from datetime import datetime
+import requests
+import random
+import string
 
 main = Blueprint('main', __name__, template_folder='../../templates')
+
+def allowed_file(filename):
+    """Check if the uploaded file has an allowed extension"""
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'ai', 'psd'}
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @main.route('/')
 def index():
@@ -29,9 +38,63 @@ def index():
                            about_us_content=settings.get('homepage_about_us_content'),
                            about_products_content=settings.get('homepage_about_products_content'))
 
-@main.route('/custom-design')
+@main.route('/custom-design', methods=['GET', 'POST'])
 def custom_design():
-    return render_template('main/custom_design.html')
+    if request.method == 'POST':
+        if 'design_file' not in request.files:
+            flash('يرجى اختيار ملف التصميم', 'error')
+            return redirect(request.url)
+        
+        file = request.files['design_file']
+        if file.filename == '':
+            flash('لم يتم اختيار ملف', 'error')
+            return redirect(request.url)
+        
+        if file and allowed_file(file.filename):
+            # Save design file
+            filename = secure_filename(file.filename)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"custom_design_{timestamp}_{filename}"
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'custom_designs', filename)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            file.save(file_path)
+            
+            # Create custom design record
+            custom_design = CustomDesign(
+                design_file=filename,
+                design_description=request.form.get('description', ''),
+                status='pending'
+            )
+            db.session.add(custom_design)
+            db.session.commit()
+            
+            # Create order for custom design
+            order = Order(
+                reference=''.join(random.choices(string.ascii_uppercase + string.digits, k=8)),
+                customer_name=request.form.get('customer_name', ''),
+                customer_email=request.form.get('customer_email', ''),
+                customer_phone=request.form.get('customer_phone', ''),
+                address=request.form.get('address', ''),
+                governorate_id=request.form.get('governorate_id'),
+                delivery_fee=50.0,  # Fixed delivery fee
+                payment_method='vodafone_cash',
+                total_amount=600.0,  # Fixed price for custom design
+                status='pending'
+            )
+            db.session.add(order)
+            db.session.commit()
+            
+            # Link custom design to order
+            custom_design.order_id = order.id
+            db.session.commit()
+            
+            flash('تم رفع التصميم المخصص بنجاح وإنشاء الطلب', 'success')
+            return redirect(url_for('cart.order_confirmation', order_number=order.reference))
+        else:
+            flash('نوع الملف غير مسموح به', 'error')
+    
+    governorates = Governorate.query.all()
+    return render_template('main/custom_design.html', governorates=governorates)
 
 @main.route('/products')
 def products():
@@ -49,10 +112,11 @@ def products():
     
     # Apply filters
     if search_query:
-        query = query.filter(Product.name.ilike(f'%{search_query}%'))
+        # استخدام الباراميتر الآمن بدلاً من تنسيق السلسلة النصية مباشرة
+        query = query.filter(Product.name.ilike(f"%{search_query}%"))
     
     if category == 'palestine':
-        query = query.filter(Product.category.ilike('palestine'))
+        query = query.filter(Product.is_palestine == True)
         title = "منتجات فلسطين"
     elif category == 'trending':
         query = query.filter(Product.is_trending == True)
@@ -61,16 +125,25 @@ def products():
         query = query.filter(Product.featured == True)
         title = "المنتجات المميزة"
     elif category:
-        query = query.filter(Product.category.ilike(f'%{category}%'))
+        # استخدام الباراميتر الآمن
+        query = query.filter(Product.category.ilike(f"%{category}%"))
         title = f"منتجات {category}"
     else:
         title = "جميع المنتجات"
     
     if min_price and min_price.isdigit():
-        query = query.filter(Product.price >= float(min_price))
+        try:
+            query = query.filter(Product.price >= float(min_price))
+        except (ValueError, TypeError):
+            # تجاهل القيم غير الصالحة
+            pass
     
     if max_price and max_price.isdigit():
-        query = query.filter(Product.price <= float(max_price))
+        try:
+            query = query.filter(Product.price <= float(max_price))
+        except (ValueError, TypeError):
+            # تجاهل القيم غير الصالحة
+            pass
     
     # Apply sorting
     if sort_by == 'price_low':
@@ -200,24 +273,52 @@ def track_order():
     searched_ref = None
 
     if request.method == 'POST':
-        searched_ref = request.form.get('order_number')
+        searched_ref = request.form.get('order_number', '').strip()
     elif request.method == 'GET':
-        searched_ref = request.args.get('order_number')
+        searched_ref = request.args.get('order_number', '').strip()
 
     if searched_ref:
-        order = Order.query.filter_by(reference=searched_ref).first()
-        if not order:
-            error_message = 'لم يتم العثور على طلب بهذا الرقم. يرجى التأكد من الرقم والمحاولة مرة أخرى.'
+        # تحقق من صحة رقم الطلب (يجب أن يكون أبجدي رقمي فقط)
+        if not searched_ref.isalnum():
+            error_message = 'رقم الطلب غير صالح. يجب أن يحتوي على أحرف وأرقام فقط.'
             flash(error_message, 'danger')
+        else:
+            # استخدام طريقة آمنة للبحث
+            order = Order.query.filter_by(reference=searched_ref).first()
+            if not order:
+                error_message = 'لم يتم العثور على طلب بهذا الرقم. يرجى التأكد من الرقم والمحاولة مرة أخرى.'
+                # تسجيل محاولات البحث الفاشلة لتتبع محاولات الاختراق المحتملة
+                current_app.logger.warning(f"Failed order tracking attempt: {searched_ref} from IP: {request.remote_addr}")
+                flash(error_message, 'danger')
+            else:
+                # تسجيل عمليات البحث الناجحة
+                current_app.logger.info(f"Successful order tracking: {order.reference}")
     
     return render_template('main/track_order.html', order=order, searched_order_number=searched_ref, error_message_for_template=error_message)
 
 @main.route('/setup')
 def setup():
+    # منع الوصول في بيئة الإنتاج
     if not current_app.debug:
-        return 'غير مسموح في وضع الإنتاج', 403
-    db.create_all()
-    flash('تم تهيئة جميع الجداول بنجاح!', 'success')
+        current_app.logger.warning(f"Attempted access to /setup in production mode from IP: {request.remote_addr}")
+        return abort(404)  # إخفاء المسار تماماً في الإنتاج
+        
+    # تطلب كلمة مرور أو توكن أمان إضافي حتى في وضع التطوير
+    setup_token = request.args.get('token')
+    if setup_token != current_app.config.get('SETUP_SECRET_KEY'):
+        current_app.logger.warning(f"Unauthorized setup attempt with token: {setup_token} from IP: {request.remote_addr}")
+        return 'غير مصرح به', 403
+        
+    try:
+        # استخدم create_all بحذر - ينبغي استخدام migrations بدلاً من ذلك
+        db.create_all()
+        flash('تم تهيئة جميع الجداول بنجاح!', 'success')
+        current_app.logger.info(f"Database tables created successfully by IP: {request.remote_addr}")
+        return redirect(url_for('main.index'))
+    except Exception as e:
+        current_app.logger.error(f"Error in setup: {str(e)}", exc_info=True)
+        flash(f'حدث خطأ أثناء تهيئة قاعدة البيانات: {str(e)}', 'danger')
+        return redirect(url_for('main.index'))
     return redirect(url_for('main.index'))
 
 @main.route('/upload_custom_design', methods=['POST'])
@@ -305,14 +406,31 @@ def product_quick_view(product_id):
 
 @main.route('/api/search/suggestions')
 def search_suggestions():
-    query = request.args.get('q', '')
+    query = request.args.get('q', '').strip()
     if len(query) < 2:
         return jsonify([])
     
-    products = Product.query.filter(Product.name.ilike(f'%{query}%')).limit(5).all()
-    suggestions = [{'name': p.name, 'url': url_for('main.product_detail', product_id=p.id)} for p in products]
-    
-    return jsonify(suggestions)
+    try:
+        # استخدام طريقة آمنة للبحث
+        products = Product.query.filter(
+            Product.name.ilike(f"%{query}%")
+        ).filter(
+            Product.in_stock == True
+        ).limit(5).all()
+        
+        suggestions = [
+            {
+                'name': p.name, 
+                'url': url_for('main.product_detail', product_id=p.id),
+                'id': p.id
+            } 
+            for p in products
+        ]
+        
+        return jsonify(suggestions)
+    except Exception as e:
+        current_app.logger.error(f"Error in search suggestions: {str(e)}", exc_info=True)
+        return jsonify([]), 500
 
 @main.app_context_processor
 def inject_global_data():
@@ -336,3 +454,59 @@ def inject_global_data():
         'site_settings': site_settings,
         'now': datetime.utcnow()
     }
+
+@main.route('/newsletter/subscribe', methods=['POST'])
+def newsletter_subscribe():
+    """Subscribe to newsletter using Mailerlite API"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        
+        if not email:
+            return jsonify({'success': False, 'message': 'البريد الإلكتروني مطلوب'}), 400
+        
+        # Mailerlite API configuration
+        api_key = current_app.config.get('MAILERLITE_API_KEY')
+        group_id = current_app.config.get('MAILERLITE_GROUP_ID', 'default_group_id')
+        
+        if not api_key:
+            current_app.logger.warning("MAILERLITE_API_KEY not configured")
+            return jsonify({'success': False, 'message': 'خدمة النشرة البريدية غير متاحة حالياً'}), 503
+        
+        # Mailerlite API endpoint
+        url = f"https://connect.mailerlite.com/api/subscribers"
+        
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            'email': email,
+            'groups': [group_id],
+            'status': 'active'
+        }
+        
+        response = requests.post(url, headers=headers, json=payload)
+        
+        if response.status_code == 200:
+            # Send welcome email
+            welcome_subject = "مرحباً بك في النشرة البريدية - Sultan Prints"
+            welcome_body = f"""
+            <h2>مرحباً بك في النشرة البريدية!</h2>
+            <p>شكراً لك على الاشتراك في نشرتنا البريدية. ستتلقى آخر العروض والتخفيضات مباشرة إلى بريدك الإلكتروني.</p>
+            <p>يمكنك إلغاء الاشتراك في أي وقت من خلال الرابط الموجود في نهاية كل رسالة.</p>
+            """
+            
+            send_email(email, welcome_subject, welcome_body)
+            
+            return jsonify({'success': True, 'message': 'تم الاشتراك بنجاح!'}), 200
+        elif response.status_code == 409:
+            return jsonify({'success': False, 'message': 'أنت مشترك بالفعل في النشرة البريدية'}), 409
+        else:
+            current_app.logger.error(f"Mailerlite API error: {response.status_code} - {response.text}")
+            return jsonify({'success': False, 'message': 'حدث خطأ أثناء الاشتراك'}), 500
+            
+    except Exception as e:
+        current_app.logger.error(f"Newsletter subscription error: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'حدث خطأ في الخادم'}), 500

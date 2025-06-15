@@ -47,6 +47,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
+*.py,cover
 .hypothesis/
 .pytest_cache/
 
@@ -63,7 +64,6 @@ db.sqlite3-journal
 # Flask stuff:
 instance/
 .webassets-cache
-.flask_cache/
 
 # Scrapy stuff:
 .scrapy
@@ -87,11 +87,11 @@ ipython_config.py
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
 #   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install different versions of packages.
-#   To avoid dependencies conflict between different platforms, please uncomment the following line.
-# Pipfile.lock
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
 
-# PEP 582; __pypackages__
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
 
 # Celery stuff
@@ -128,40 +128,66 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# macOS files
+# Sultan Prints specific
+# Upload directories (keep structure but ignore content)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Logs
+logs/
+*.log
+app_error.log
+
+# Database
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Custom logs folder
-/logs/
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
 
-# Temporary run file (if used)
-run.py
-/temp_uploads/
-.webassets-cache/
+# Configuration files with sensitive data
+config_local.py
+.env.local
+.env.production
 
-# IDE settings
-.idea/
-.vscode/
+# Backup files
+backup/
+*.backup
 
-# Config files with secrets
-config.py
-.env
+# Node modules (if using any frontend build tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# SQLite database files
-*.sqlite3
-dev.db
-site.db
-app.db
+# Build outputs
+dist/
+build/
+*.tar.gz
+*.zip
 
-# Editor directories and files
-.idea/
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-*.DS_Store
+# Test coverage
+.coverage
+htmlcov/
 
-# Web compile files
-.web-compile
+# Local development
+local_settings.py

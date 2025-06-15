@@ -40,6 +40,7 @@ class ProductForm(FlaskForm):
     image = FileField('صورة المنتج', render_kw={"class": "form-control", "accept": "image/*"})
     in_stock = BooleanField('متوفر في المخزون', default=True, render_kw={"class": "form-check-input"})
     category = StringField('الفئة', validators=[Optional(), Length(max=100)], render_kw={"class": "form-control", "placeholder": "مثال: تيشيرتات، فلسطين، صيف 2024"})
+    is_palestine = BooleanField('عرض هذا المنتج ضمن قسم فلسطين', render_kw={"class": "form-check-input"})
     submit = SubmitField('حفظ', render_kw={"class": "btn btn-primary w-100"})
 
 class ContactForm(FlaskForm):
@@ -48,18 +49,6 @@ class ContactForm(FlaskForm):
     phone = StringField('رقم الهاتف', validators=[Optional(), Length(min=6, max=20)])
     message = TextAreaField('الرسالة', validators=[DataRequired(), Length(min=10, max=2000)])
     submit = SubmitField('إرسال')
-
-class DiscountForm(FlaskForm):
-    code = StringField('كود الخصم', validators=[DataRequired(), Length(min=2, max=20)])
-    type = SelectField('نوع الخصم', choices=[('percentage','نسبة مئوية'),('fixed','قيمة ثابتة')], validators=[DataRequired()])
-    value = FloatField('قيمة الخصم', validators=[DataRequired(), NumberRange(min=0)])
-    min_purchase = FloatField('الحد الأدنى للطلب', validators=[Optional(), NumberRange(min=0)])
-    max_discount = FloatField('الحد الأقصى للخصم', validators=[Optional(), NumberRange(min=0)])
-    usage_limit = IntegerField('عدد مرات الاستخدام', validators=[Optional(), NumberRange(min=1)])
-    start_date = StringField('تاريخ البداية', validators=[DataRequired()])
-    end_date = StringField('تاريخ النهاية', validators=[DataRequired()])
-    is_active = BooleanField('نشط', default=True)
-    submit = SubmitField('حفظ')
 
 class AdminLoginForm(FlaskForm):
     email = StringField('البريد الإلكتروني', validators=[DataRequired(), Email()])

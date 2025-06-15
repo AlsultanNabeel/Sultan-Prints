@@ -1,50 +1,59 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request, jsonify
 from app.models import Product, Order, OrderItem, Cart, CartItem, Design, Governorate # Added Cart, CartItem, Design, Governorate
-from app.services.discounts import DiscountManager, Discount # Discount is from here
-from app.extensions import db # For db.session
+from app.extensions import db, csrf # For db.session and csrf
 from app.forms import CheckoutForm # For CheckoutForm
 import uuid, os, json
 from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from app.utils import get_or_create_cart, calculate_cart_total
-from app.services.discounts import DiscountManager
 from app.utils.email_utils import send_email
 from flask import current_app # Add this import for logging
 
 cart_bp = Blueprint('cart', __name__, url_prefix='/cart')
 
-@cart_bp.app_context_processor
-def inject_cart_count():
-    """
-    Injects an accurate cart count into all templates on every request.
-    This is the definitive source of truth for the cart count.
-    """
-    if 'cart_id' in session:
-        cart = Cart.query.filter_by(session_id=session['cart_id']).first()
-        if cart:
-            # Perform an efficient count directly in the database
-            total_items = db.session.query(db.func.sum(CartItem.quantity)).filter(CartItem.cart_id == cart.id).scalar() or 0
-            session['cart_count'] = total_items # Keep session in sync
-            return dict(cart_count=total_items)
-            
-    # If there's no cart or no cart_id, the count is 0
-    if 'cart_count' not in session:
-        session['cart_count'] = 0
-    return dict(cart_count=session.get('cart_count', 0))
-
 def get_or_create_cart():
-    cart_id = session.get('cart_id')
-    if cart_id:
-        cart = Cart.query.filter_by(session_id=cart_id).first()
-        if cart:
+    """
+    الحصول على سلة التسوق الحالية أو إنشاء واحدة جديدة
+    
+    يقوم بالتحقق من وجود معرف سلة في الجلسة
+    إذا كان موجوداً، يحاول استرداد السلة من قاعدة البيانات
+    إذا لم يكن موجوداً أو لم يتم العثور على السلة، يقوم بإنشاء سلة جديدة
+    
+    Returns:
+        Cart: كائن سلة التسوق
+    """
+    try:
+        cart_id = session.get('cart_id')
+        if cart_id:
+            cart = Cart.query.filter_by(session_id=cart_id).first()
+            if cart:
+                # تحديث وقت الإنشاء للسلة لمنع انتهاء صلاحيتها
+                cart.created_at = datetime.utcnow()
+                db.session.commit()
+                return cart
+                
+        # إنشاء معرّف جلسة جديد وسلة جديدة
+        session_id = str(uuid.uuid4())
+        cart = Cart(session_id=session_id)
+        db.session.add(cart)
+        db.session.commit()
+        session['cart_id'] = session_id
+        return cart
+    except Exception as e:
+        current_app.logger.error(f"Error in get_or_create_cart: {str(e)}", exc_info=True)
+        # في حالة حدوث خطأ، نحاول إنشاء سلة جديدة كحل بديل
+        try:
+            session_id = str(uuid.uuid4())
+            cart = Cart(session_id=session_id)
+            db.session.add(cart)
+            db.session.commit()
+            session['cart_id'] = session_id
             return cart
-    session_id = str(uuid.uuid4())
-    cart = Cart(session_id=session_id)
-    db.session.add(cart)
-    db.session.commit()
-    session['cart_id'] = session_id
-    return cart
+        except Exception as inner_e:
+            # في حالة فشل الحل البديل، نسجل الخطأ ونعيد None
+            current_app.logger.critical(f"Critical error creating cart: {str(inner_e)}", exc_info=True)
+            return None
 
 @cart_bp.route('/cart')
 def cart():
@@ -84,83 +93,102 @@ def cart():
 @cart_bp.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
     current_app.logger.info("--- Add to Cart Fired ---")
-    current_app.logger.info(f"Form data received: {request.form}")
-
-    product_id = request.form.get('product_id', type=int)
-    if not product_id:
-        current_app.logger.error("No product_id in form data.")
-        return {'message': 'Product ID is missing.'}, 400
-        
-    product = Product.query.get_or_404(product_id)
-    current_app.logger.info(f"Product found: {product.name}")
-
-    is_from_product_page = 'size' in request.form or 'color' in request.form
-    current_app.logger.info(f"Is from product page? {is_from_product_page}")
-
+    
     try:
-        requires_size = product.sizes and json.loads(product.sizes)
-        requires_color = product.colors and product.colors.strip()
-        current_app.logger.info(f"Requires size? {bool(requires_size)}. Requires color? {bool(requires_color)}")
-    except json.JSONDecodeError:
-        requires_size = False # If sizes is not valid JSON, treat as not requiring size.
-        current_app.logger.warning(f"Product {product.id} has invalid JSON in 'sizes' field.")
+        current_app.logger.info(f"Form data received: {request.form}")
 
-
-    if (requires_size or requires_color) and not is_from_product_page:
-        current_app.logger.info("Redirecting to product page because options are required.")
-        flash('الرجاء تحديد خيارات المنتج أولاً.', 'info')
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return {'redirect': url_for('main.product_detail', product_id=product.id)}, 400
-        return redirect(url_for('main.product_detail', product_id=product.id))
-
-    size = request.form.get('size')
-    color = request.form.get('color')
-    current_app.logger.info(f"Size selected: {size}. Color selected: {color}")
-
-    if is_from_product_page:
-        if requires_size and not size:
-            current_app.logger.warning("Validation failed: Size is required but not provided.")
-            flash('يجب اختيار المقاس.', 'danger')
-            return redirect(url_for('main.product_detail', product_id=product.id))
-        if requires_color and not color:
-            current_app.logger.warning("Validation failed: Color is required but not provided.")
-            flash('يجب اختيار اللون.', 'danger')
-            return redirect(url_for('main.product_detail', product_id=product.id))
+        product_id = request.form.get('product_id', type=int)
+        if not product_id:
+            current_app.logger.error("No product_id in form data.")
+            return jsonify({
+                'success': False,
+                'message': 'معرّف المنتج مفقود.'
+            }), 400
             
-    final_size = size if size else 'Standard'
-    final_color = color if color else 'Default'
-    quantity = request.form.get('quantity', 1, type=int)
+        product = Product.query.get_or_404(product_id)
+        if not product.in_stock:
+            return jsonify({
+                'success': False,
+                'message': 'هذا المنتج غير متوفر حالياً في المخزون.'
+            }), 400
+            
+        current_app.logger.info(f"Product found: {product.name}")
 
-    cart = get_or_create_cart()
-    current_app.logger.info(f"Using cart with session_id: {cart.session_id}")
+        is_from_product_page = 'size' in request.form or 'color' in request.form
+        current_app.logger.info(f"Is from product page? {is_from_product_page}")
 
-    existing_item = CartItem.query.filter_by(cart_id=cart.id, product_id=product_id, size=final_size, color=final_color).first()
+        # التحقق من وجود خيارات المقاس واللون
+        try:
+            requires_size = product.sizes and json.loads(product.sizes)
+            requires_color = product.colors and product.colors.strip()
+        except json.JSONDecodeError:
+            requires_size = False  # If sizes is not valid JSON, treat as not requiring size.
+            current_app.logger.warning(f"Product {product.id} has invalid JSON in 'sizes' field.")
+            
+        current_app.logger.info(f"Requires size? {bool(requires_size)}. Requires color? {bool(requires_color)}")
 
-    if existing_item:
-        current_app.logger.info(f"Found existing item (ID: {existing_item.id}). Increasing quantity.")
-        existing_item.quantity += quantity
-    else:
-        current_app.logger.info("No existing item found. Creating new CartItem.")
-        new_item = CartItem(cart_id=cart.id, product_id=product.id, quantity=quantity, size=final_size, color=final_color)
-        db.session.add(new_item)
-    
-    try:
-        db.session.commit()
-        current_app.logger.info("Database commit successful.")
+        if (requires_size or requires_color) and not is_from_product_page:
+            current_app.logger.info("Redirecting to product page because options are required.")
+            flash('الرجاء تحديد خيارات المنتج أولاً.', 'info')
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return {'redirect': url_for('main.product_detail', product_id=product.id)}, 400
+            return redirect(url_for('main.product_detail', product_id=product.id))
+
+        size = request.form.get('size')
+        color = request.form.get('color')
+        current_app.logger.info(f"Size selected: {size}. Color selected: {color}")
+
+        if is_from_product_page:
+            if requires_size and not size:
+                current_app.logger.warning("Validation failed: Size is required but not provided.")
+                flash('يجب اختيار المقاس.', 'danger')
+                return redirect(url_for('main.product_detail', product_id=product.id))
+            if requires_color and not color:
+                current_app.logger.warning("Validation failed: Color is required but not provided.")
+                flash('يجب اختيار اللون.', 'danger')
+                return redirect(url_for('main.product_detail', product_id=product.id))
+                
+        final_size = size if size else 'Standard'
+        final_color = color if color else 'Default'
+        quantity = request.form.get('quantity', 1, type=int)
+
+        cart = get_or_create_cart()
+        current_app.logger.info(f"Using cart with session_id: {cart.session_id}")
+
+        existing_item = CartItem.query.filter_by(cart_id=cart.id, product_id=product_id, size=final_size, color=final_color).first()
+
+        if existing_item:
+            current_app.logger.info(f"Found existing item (ID: {existing_item.id}). Increasing quantity.")
+            existing_item.quantity += quantity
+        else:
+            current_app.logger.info("No existing item found. Creating new CartItem.")
+            new_item = CartItem(cart_id=cart.id, product_id=product.id, quantity=quantity, size=final_size, color=final_color)
+            db.session.add(new_item)
+        
+        try:
+            db.session.commit()
+            current_app.logger.info("Database commit successful.")
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Database error on commit: {e}")
+            return {'message': 'Database error.'}, 500
+
+        total_items = db.session.query(db.func.sum(CartItem.quantity)).filter(CartItem.cart_id == cart.id).scalar() or 0
+        session['cart_count'] = total_items
+        current_app.logger.info(f"Cart update complete. New total items: {total_items}")
+
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return {'message': 'تمت إضافة المنتج بنجاح!', 'cart_count': total_items}, 200
+        
+        flash('تمت إضافة المنتج بنجاح!', 'success')
+        return redirect(url_for('cart.cart'))
+            
     except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Database error on commit: {e}")
-        return {'message': 'Database error.'}, 500
-
-    total_items = db.session.query(db.func.sum(CartItem.quantity)).filter(CartItem.cart_id == cart.id).scalar() or 0
-    session['cart_count'] = total_items
-    current_app.logger.info(f"Cart update complete. New total items: {total_items}")
-
-    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return {'message': 'تمت إضافة المنتج بنجاح!', 'cart_count': total_items}, 200
-    
-    flash('تمت إضافة المنتج بنجاح!', 'success')
-    return redirect(url_for('cart.cart'))
+        current_app.logger.error(f"Error adding product to cart: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': 'حدث خطأ أثناء إضافة المنتج إلى السلة'
+        }), 500
 
 @cart_bp.route('/remove_from_cart/<int:item_id>', methods=['POST'])
 def remove_from_cart(item_id):
@@ -208,16 +236,7 @@ def checkout():
         delivery_fee = selected_governorate.delivery_fee
         final_total = products_total + delivery_fee
 
-        # Get discount from session if available
-        discount_code = session.get('discount_code')
-        discount_amount = session.get('discount_amount', 0)
-        
-        # Adjust final_total if discount is applied
-        if discount_code and discount_amount > 0:
-            final_total -= discount_amount
-            final_total = max(0, final_total) # Ensure total doesn't go below zero
-
-        # Order creation logic with discount
+        # Order creation logic without discount
         order = Order(
             customer_name=form.name.data,
             customer_email=form.email.data,
@@ -226,19 +245,29 @@ def checkout():
             governorate_id=selected_governorate_id,
             delivery_fee=delivery_fee,
             payment_method=form.payment_method.data,
-            total_amount=final_total, # Save the final total including delivery and after discount
-            discount_code=discount_code,
-            discount_amount=discount_amount
+            total_amount=final_total, # Save the final total including delivery
         )
-        
         db.session.add(order)
+        db.session.flush()  # حتى يتوفر order.id
 
-        # ... (rest of order creation logic like saving items and clearing cart) ...
-        # Clear cart and discount from session
+        # تحويل عناصر السلة إلى عناصر الطلب
+        for cart_item in cart.items:
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=cart_item.product_id,
+                product_name=cart_item.product.name if cart_item.product else '',
+                color=cart_item.color or 'غير محدد',
+                size=cart_item.size or 'غير محدد',
+                quantity=cart_item.quantity,
+                price=cart_item.product.price if cart_item.product else 0
+            )
+            db.session.add(order_item)
+
+        db.session.commit()
+
+        # Clear cart from session
         session.pop('cart_id', None)
         session.pop('cart_count', None)
-        session.pop('discount_code', None)
-        session.pop('discount_amount', None)
 
         # Send emails after successful commit
         try:
@@ -288,63 +317,6 @@ def order_confirmation(order_number):
     order = Order.query.filter_by(reference=order_number).first_or_404()
     return render_template('cart/order_confirmation.html', order=order)
 
-@cart_bp.route('/apply_coupon', methods=['POST'])
-def apply_coupon():
-    print("--- Attempting to enter apply_coupon function ---") # New print statement
-    coupon_code = request.form.get('coupon_code')
-    print(f"--- Coupon code from form: {coupon_code} ---") # Existing print, good to keep
-
-    if not coupon_code:
-        print("--- Error: Coupon code is required ---")
-        return jsonify({'error': 'Coupon code is required'}), 400
-
-    cart = session.get('cart', {})
-    print(f"--- Cart from session: {cart} ---") # Existing print, good to keep
-
-    if not cart:
-        print("--- Error: Cart is empty ---")
-        return jsonify({'error': 'Cart is empty'}), 400
-
-    # Calculate subtotal
-    subtotal = 0
-    for item_id, item_data in cart.items():
-        product = Product.query.get(item_data['product_id'])
-        if product:
-            subtotal += product.price * item_data['quantity']
-    
-    print(f"--- Apply Coupon Attempt ---")
-    print(f"Received coupon code: {coupon_code}")
-    print(f"Cart subtotal: {subtotal}")
-
-    discount_manager = DiscountManager()
-    is_valid, message, discount_details = discount_manager.validate_discount(coupon_code, subtotal)
-
-    print(f"Discount validation result: is_valid={is_valid}, message='{message}', details={discount_details}")
-
-    if is_valid and discount_details:
-        session['discount_code'] = coupon_code
-        session['discount_amount'] = discount_details['discount_value']
-        session['discount_type'] = discount_details['discount_type']
-        session.modified = True
-        print(f"Coupon '{coupon_code}' applied successfully. Discount amount: {discount_details['discount_value']}, Type: {discount_details['discount_type']}")
-        return jsonify({
-            'message': message,
-            'discount_amount': discount_details['discount_value'],
-            'discount_type': discount_details['discount_type'],
-            'new_total': discount_details['new_subtotal_after_discount']
-        }), 200
-    else:
-        print(f"Failed to apply coupon '{coupon_code}': {message}")
-        return jsonify({'error': message}), 400
-
-@cart_bp.route('/remove_coupon', methods=['POST'])
-def remove_coupon():
-    session.pop('discount_code', None)
-    session.pop('discount_amount', None)
-    session.pop('discount_type', None)
-    session.modified = True
-    return jsonify({'message': 'تمت إزالة الكوبون بنجاح'}), 200
-
 @cart_bp.route('/get_delivery_fee/<int:governorate_id>')
 def get_delivery_fee(governorate_id):
     governorate = Governorate.query.get(governorate_id)
@@ -352,4 +324,67 @@ def get_delivery_fee(governorate_id):
         return jsonify({'delivery_fee': governorate.delivery_fee, 'name': governorate.name})
     return jsonify({'error': 'Governorate not found'}), 404
 
-# يمكن إضافة مسارات add_to_cart و remove_from_cart لاحقًا بنفس النمط مع حماية قوية
+@cart_bp.route('/update_quantity', methods=['POST'])
+def update_quantity():
+    """
+    تحديث كمية المنتج في سلة التسوق عبر AJAX
+    """
+    try:
+        item_id = request.form.get('item_id', type=int)
+        quantity = request.form.get('quantity', type=int)
+        
+        if not item_id or not quantity:
+            return jsonify({
+                'success': False,
+                'message': 'بيانات غير صالحة'
+            }), 400
+            
+        # تحديد الحد الأدنى والأقصى للكمية
+        if quantity < 1:
+            quantity = 1
+        elif quantity > 10:
+            quantity = 10
+            
+        # التحقق من وجود سلة للمستخدم
+        cart = get_or_create_cart()
+        if not cart:
+            return jsonify({
+                'success': False,
+                'message': 'خطأ في السلة'
+            }), 400
+            
+        # البحث عن العنصر في السلة
+        cart_item = CartItem.query.filter_by(id=item_id, cart_id=cart.id).first()
+        if not cart_item:
+            return jsonify({
+                'success': False,
+                'message': 'المنتج غير موجود في السلة'
+            }), 404
+            
+        # تحديث الكمية
+        cart_item.quantity = quantity
+        db.session.commit()
+        
+        # حساب إجمالي المنتج وإجمالي السلة
+        product = Product.query.get(cart_item.product_id)
+        if not product:
+            return jsonify({
+                'success': False,
+                'message': 'المنتج غير موجود'
+            }), 404
+            
+        subtotal = product.price * quantity
+        total_amount, _ = calculate_cart_total(cart)
+        
+        return jsonify({
+            'success': True,
+            'subtotal': f"{subtotal:.2f} جنيه",
+            'total': f"{total_amount:.2f} جنيه",
+            'quantity': quantity
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error updating cart quantity: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': 'حدث خطأ أثناء تحديث السلة'
+        }), 500

@@ -95,7 +95,11 @@
                                     </div>
                                     <div class="mb-3">
                                         {{ form.category.label(class="form-label") }}
-                                        {{ form.category(class="form-control", placeholder="مثال: تيشيرتات، فلسطين، صيف 2024") }}
+                                        {{ form.category(class="form-control", required=true) }}
+                                    </div>
+                                    <div class="mb-3 form-check">
+                                        {{ form.is_palestine(class="form-check-input") }}
+                                        {{ form.is_palestine.label(class="form-check-label") }}
                                     </div>
                                 </div>
                             </div>

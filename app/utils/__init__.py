@@ -22,26 +22,58 @@ def log_event(message, level='info'):
 
 def allowed_file(filename):
     """Checks if the file extension is allowed."""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
+    if not filename:
+        return False
+    try:
+        return '.' in filename and \
+               filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
+    except (IndexError, AttributeError, KeyError):
+        # حدثت مشكلة في التحقق من امتداد الملف
+        log_event(f"Error checking file extension for: {filename}", level='error')
+        return False
 
 def save_image(file, folder='designs'):
     """Saves an uploaded image and returns the filename."""
     if not file or not allowed_file(file.filename):
         return None
     
-    random_hex = secrets.token_hex(8)
-    _, f_ext = os.path.splitext(file.filename)
-    picture_fn = random_hex + f_ext
-    picture_path = os.path.join(current_app.static_folder, 'uploads', folder, picture_fn)
-    
-    os.makedirs(os.path.dirname(picture_path), exist_ok=True)
-    
-    i = Image.open(file)
-    i.thumbnail((1200, 1200))
-    i.save(picture_path)
-    
-    return os.path.join('uploads', folder, picture_fn)
+    try:
+        random_hex = secrets.token_hex(8)
+        _, f_ext = os.path.splitext(file.filename)
+        picture_fn = random_hex + f_ext
+        uploads_folder = os.path.join(current_app.static_folder, 'uploads')
+        target_folder = os.path.join(uploads_folder, folder)
+        picture_path = os.path.join(target_folder, picture_fn)
+        
+        # التأكد من وجود المجلدات
+        os.makedirs(os.path.dirname(picture_path), exist_ok=True)
+        
+        # التحقق من صحة الصورة قبل الحفظ
+        try:
+            i = Image.open(file)
+            i.verify()  # التحقق من أن الملف هو صورة صالحة
+            file.seek(0)  # إعادة تعيين المؤشر بعد التحقق
+            
+            i = Image.open(file)
+            # استخدام LANCZOS للحصول على جودة أفضل
+            i.thumbnail((1200, 1200), Image.LANCZOS)
+            
+            # حفظ بجودة عالية مع الحفاظ على الشفافية للصور PNG
+            if f_ext.lower() in ('.png', '.webp'):
+                i.save(picture_path, optimize=True)
+            else:
+                i.save(picture_path, quality=90, optimize=True)
+            
+            # تسجيل نجاح رفع الصورة
+            log_event(f"Image uploaded successfully: {picture_fn} to {folder}", level='info')
+            
+            return os.path.join('uploads', folder, picture_fn)
+        except Exception as e:
+            log_event(f"Error processing image: {e}", level='error')
+            return None
+    except Exception as e:
+        log_event(f"Error saving image: {e}", level='error')
+        return None
 
 def inject_settings():
     """Injects site-wide settings into all templates."""
@@ -83,6 +115,11 @@ def calculate_cart_total(cart):
 
 def inject_cart_item_count():
     """Injects the cart item count into all templates."""
-    cart = get_or_create_cart()
-    _, total_items = calculate_cart_total(cart)
-    return dict(cart_item_count=total_items) 
+    try:
+        cart = get_or_create_cart()
+        _, total_items = calculate_cart_total(cart)
+        return dict(cart_item_count=total_items)
+    except Exception as e:
+        # Log the error but don't break the template rendering
+        current_app.logger.error(f"Error in inject_cart_item_count: {str(e)}")
+        return dict(cart_item_count=0) 

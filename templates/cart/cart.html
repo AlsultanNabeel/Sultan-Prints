@@ -62,12 +62,13 @@
                                         <td class="text-center align-middle">{{ item.product.price }} جنيه</td>
                                         <td class="text-center align-middle">{{ item.quantity }}</td>
                                         <td class="text-center align-middle fw-bold">{{ item.subtotal }} جنيه</td>
-                                        <td class="text-center align-middle">
-                                            <form action="{{ url_for('cart.remove_from_cart', item_id=item.id) }}" method="POST">
+                                        <td class="text-center">
+                                            <form method="POST" action="{{ url_for('cart.remove_from_cart', item_id=item.id) }}" 
+                                                  style="display: inline;">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                <button type="submit" class="btn btn-danger btn-sm" 
                                                         onclick="return confirm('هل أنت متأكد من حذف هذا المنتج من السلة؟')">
-                                                    <i class="fas fa-trash-alt"></i>
+                                                    <i class="fas fa-trash me-1"></i>حذف
                                                 </button>
                                             </form>
                                         </td>
@@ -149,4 +150,32 @@
         {% endif %}
     </div>
 </section>
+
+{% block extra_css %}
+<style>
+    .delete-cart-item {
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        border: 2px solid #dc3545;
+        background-color: transparent;
+        color: #dc3545;
+    }
+    
+    .delete-cart-item:hover {
+        background-color: #dc3545;
+        color: white;
+        transform: scale(1.1);
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+    }
+    
+    .delete-cart-item i {
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
 {% endblock %}

@@ -101,10 +101,6 @@ def init_db():
                     category = Category(name=cat_data["name"], description=cat_data["description"])
                     db.session.add(category)
             
-            # Add banner
-            banner = Banner(content='خصم 20% على جميع المنتجات لفترة محدودة! استخدم كود: SUMMER20')
-            db.session.add(banner)
-            
             db.session.commit()
             print("✅ تم تهيئة قاعدة البيانات وإضافة بيانات العرض التوضيحي")
         else:

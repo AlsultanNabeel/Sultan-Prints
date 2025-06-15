@@ -5,75 +5,247 @@
 {% block content %}
 <div class="container my-5">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-lg-10">
             <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="text-center mb-0">
+                        <i class="fas fa-search me-2"></i>تتبع طلبك
+                    </h2>
+                </div>
                 <div class="card-body">
-                    <h2 class="text-center mb-4">تتبع طلبك</h2>
-                    
                     {% if not searched_order_number %}
                     <form method="GET" action="{{ url_for('main.track_order') }}" class="mb-4">
                         <div class="form-group mb-3">
-                            <label for="order_number_input">رقم الطلب</label>
-                            <input type="text" class="form-control" id="order_number_input" name="order_number" required>
+                            <label for="order_number_input" class="form-label fw-bold">رقم الطلب</label>
+                            <input type="text" class="form-control form-control-lg" id="order_number_input" 
+                                   name="order_number" placeholder="أدخل رقم الطلب هنا..." required>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">تتبع</button>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-search me-2"></i>تتبع الطلب
+                        </button>
                     </form>
                     {% endif %}
                     
                     {% if order %}
                     <div class="order-details">
-                        <div class="d-flex justify-content-between mb-3">
-                            <h5>رقم الطلب: {{ order.reference }}</h5>
-                            <span>{{ order.created_at.strftime('%Y-%m-%d') }}</span>
+                        <!-- Order Header -->
+                        <div class="order-header bg-light p-4 rounded mb-4">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h4 class="mb-2">
+                                        <i class="fas fa-receipt me-2 text-primary"></i>
+                                        طلب رقم: {{ order.reference }}
+                                    </h4>
+                                    <p class="text-muted mb-0">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        تاريخ الطلب: {{ order.created_at.strftime('%Y-%m-%d في الساعة %I:%M %p') }}
+                                    </p>
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <div class="order-status-badge">
+                                        {% if order.status == 'pending' %}
+                                            <span class="badge bg-warning fs-6">قيد الانتظار</span>
+                                        {% elif order.status == 'processing' %}
+                                            <span class="badge bg-info fs-6">قيد المعالجة</span>
+                                        {% elif order.status == 'shipped' %}
+                                            <span class="badge bg-primary fs-6">تم الشحن</span>
+                                        {% elif order.status == 'delivered' %}
+                                            <span class="badge bg-success fs-6">تم التوصيل</span>
+                                        {% elif order.status == 'cancelled' %}
+                                            <span class="badge bg-danger fs-6">ملغي</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary fs-6">{{ order.status }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="order-items mt-4">
-                            <h5>المنتجات:</h5>
-                            {% for item in order.order_items %}
-                            <div class="order-item d-flex align-items-center mb-3">
-                                <div class="ms-0">
-                                    <h6 class="mb-0">{{ item.product_name }}</h6>
-                                    <small>المقاس: {{ item.size|default('N/A') }} | اللون: {{ item.color|default('N/A') }} | الكمية: {{ item.quantity }}</small>
+
+                        <!-- Order Items -->
+                        <div class="order-items mb-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-shopping-bag me-2 text-primary"></i>
+                                تفاصيل الطلب:
+                            </h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>المنتج</th>
+                                            <th>المواصفات</th>
+                                            <th>الكمية</th>
+                                            <th>السعر</th>
+                                            <th>الإجمالي</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in order.order_items %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if item.product and item.product.image %}
+                                                    <img src="{{ url_for('static', filename=item.product.image) }}" 
+                                                         alt="{{ item.product_name }}" 
+                                                         class="me-3" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <h6 class="mb-1">{{ item.product_name }}</h6>
+                                                        {% if order.custom_designs %}
+                                                        <span class="badge bg-success">
+                                                            <i class="fas fa-paint-brush me-1"></i>تصميم مخصص
+                                                        </span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {% if item.size %}المقاس: {{ item.size }}<br>{% endif %}
+                                                    {% if item.color %}اللون: {{ item.color }}{% endif %}
+                                                </small>
+                                            </td>
+                                            <td>{{ item.quantity }}</td>
+                                            <td>{{ "{:,.2f}".format(item.unit_price) }} جنيه</td>
+                                            <td class="fw-bold">{{ "{:,.2f}".format(item.subtotal) }} جنيه</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Custom Designs Section -->
+                        {% if order.custom_designs %}
+                        <div class="custom-designs mb-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-paint-brush me-2 text-success"></i>
+                                التصاميم المخصصة:
+                            </h5>
+                            {% for design in order.custom_designs %}
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <h6 class="card-title">
+                                                <i class="fas fa-file-image me-2"></i>
+                                                {{ design.design_file }}
+                                            </h6>
+                                            {% if design.design_description %}
+                                            <p class="card-text text-muted">{{ design.design_description }}</p>
+                                            {% endif %}
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                تم الرفع: {{ design.created_at.strftime('%Y-%m-%d') }}
+                                            </small>
+                                        </div>
+                                        <div class="col-md-4 text-md-end">
+                                            <a href="{{ url_for('static', filename='uploads/custom_designs/' + design.design_file) }}" 
+                                               target="_blank" class="btn btn-outline-success btn-sm">
+                                                <i class="fas fa-eye me-1"></i>عرض التصميم
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
-                        
-                        <div class="shipping-details mt-4">
-                            <h5>معلومات التوصيل:</h5>
-                            <p>{{ order.customer_name }}<br>
-                            {{ order.customer_phone }}<br>
-                            {{ order.address }}</p>
+                        {% endif %}
+
+                        <!-- Customer Information -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-user me-2 text-primary"></i>
+                                            معلومات العميل
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="mb-2">
+                                            <strong>الاسم:</strong> {{ order.customer_name }}
+                                        </p>
+                                        <p class="mb-2">
+                                            <strong>البريد الإلكتروني:</strong> {{ order.customer_email }}
+                                        </p>
+                                        <p class="mb-2">
+                                            <strong>رقم الهاتف:</strong> {{ order.customer_phone }}
+                                        </p>
+                                        <p class="mb-0">
+                                            <strong>العنوان:</strong> {{ order.address }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-credit-card me-2 text-primary"></i>
+                                            تفاصيل الدفع
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="mb-2">
+                                            <strong>طريقة الدفع:</strong> 
+                                            {% if order.payment_method == 'vodafone_cash' %}
+                                                <span class="badge bg-success">Vodafone Cash</span>
+                                            {% elif order.payment_method == 'cash_on_delivery' %}
+                                                <span class="badge bg-info">الدفع عند الاستلام</span>
+                                            {% else %}
+                                                {{ order.payment_method }}
+                                            {% endif %}
+                                        </p>
+                                        <p class="mb-2">
+                                            <strong>رسوم التوصيل:</strong> {{ "{:,.2f}".format(order.delivery_fee) }} جنيه
+                                        </p>
+                                        <p class="mb-0">
+                                            <strong>الإجمالي النهائي:</strong> 
+                                            <span class="fw-bold text-primary fs-5">{{ "{:,.2f}".format(order.total_amount) }} جنيه</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Order Status Timeline -->
-                        <div class="order-status-timeline mt-5">
-                            <h5 class="mb-4">سجل تتبع الطلب:</h5>
+                        <div class="order-status-timeline">
+                            <h5 class="mb-4">
+                                <i class="fas fa-history me-2 text-primary"></i>
+                                سجل تتبع الطلب:
+                            </h5>
                             <div class="timeline">
-                                {% for status in order.status_history %}
-                                <div class="timeline-item">
-                                    <div class="timeline-icon">
-                                        {% if 'delivered' in status.status or 'completed' in status.status %}
-                                            <i class="fas fa-check-circle text-success"></i>
-                                        {% elif 'shipped' in status.status or 'delivery' in status.status %}
-                                            <i class="fas fa-truck text-primary"></i>
-                                        {% elif 'processing' in status.status or 'printing' in status.status %}
-                                            <i class="fas fa-cogs text-info"></i>
-                                        {% elif 'cancelled' in status.status or 'refunded' in status.status %}
-                                            <i class="fas fa-times-circle text-danger"></i>
-                                        {% else %}
-                                            <i class="fas fa-receipt text-muted"></i>
-                                        {% endif %}
+                                {% if order.status_history %}
+                                    {% for status in order.status_history %}
+                                    <div class="timeline-item">
+                                        <div class="timeline-icon">
+                                            {% if 'delivered' in status.status or 'completed' in status.status %}
+                                                <i class="fas fa-check-circle text-success"></i>
+                                            {% elif 'shipped' in status.status or 'delivery' in status.status %}
+                                                <i class="fas fa-truck text-primary"></i>
+                                            {% elif 'processing' in status.status or 'printing' in status.status %}
+                                                <i class="fas fa-cogs text-info"></i>
+                                            {% elif 'cancelled' in status.status or 'refunded' in status.status %}
+                                                <i class="fas fa-times-circle text-danger"></i>
+                                            {% else %}
+                                                <i class="fas fa-receipt text-muted"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="timeline-content">
+                                            <h6 class="mb-1">{{ status.status|capitalize }}</h6>
+                                            <p class="mb-1 text-muted">{{ status.timestamp.strftime('%Y-%m-%d في الساعة %I:%M %p') }}</p>
+                                            {% if status.notes %}
+                                                <small class="text-muted fst-italic">"{{ status.notes }}"</small>
+                                            {% endif %}
+                                        </div>
                                     </div>
-                                    <div class="timeline-content">
-                                        <h6 class="mb-1">{{ status.status|capitalize }}</h6>
-                                        <p class="mb-1 text-muted">{{ status.timestamp.strftime('%Y-%m-%d at %I:%M %p') }}</p>
-                                        {% if status.notes %}
-                                            <small class="text-muted fst-italic">"{{ status.notes }}"</small>
-                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle fa-2x mb-3"></i>
+                                        <p>لا توجد تحديثات حالية للطلب</p>
                                     </div>
-                                </div>
-                                {% endfor %}
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -81,13 +253,16 @@
                     
                     {% if searched_order_number and not order and error_message_for_template %}
                     <div class="alert alert-danger mt-4">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
                         {{ error_message_for_template }}
                     </div>
                     {% endif %}
 
                     {% if searched_order_number %}
                     <div class="mt-4 text-center">
-                        <a href="{{ url_for('main.track_order') }}" class="btn btn-outline-secondary">بحث عن طلب آخر</a>
+                        <a href="{{ url_for('main.track_order') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-search me-2"></i>بحث عن طلب آخر
+                        </a>
                     </div>
                     {% endif %}
                 </div>
@@ -97,59 +272,6 @@
 </div>
 
 <style>
-.tracking-timeline {
-    display: flex;
-    justify-content: space-between;
-    margin: 40px 0;
-    position: relative;
-}
-
-.tracking-timeline::before {
-    content: '';
-    position: absolute;
-    top: 20px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #e9ecef;
-    z-index: 1;
-}
-
-.tracking-step {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    width: 25%;
-}
-
-.step-icon {
-    width: 40px;
-    height: 40px;
-    background: #fff;
-    border: 2px solid #e9ecef;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 10px;
-}
-
-.tracking-step.active .step-icon {
-    background: #007bff;
-    border-color: #007bff;
-    color: #fff;
-}
-
-.step-text {
-    font-size: 0.875rem;
-    color: #6c757d;
-}
-
-.tracking-step.active .step-text {
-    color: #007bff;
-    font-weight: bold;
-}
-
 .timeline {
     position: relative;
     padding-left: 40px;
@@ -167,7 +289,7 @@
 
 .timeline-icon {
     position: absolute;
-    left: -21px; /* (40px icon width / 2) - 2px border width = 22px, but 21px looks better */
+    left: -21px;
     top: 0;
     width: 40px;
     height: 40px;
@@ -177,10 +299,28 @@
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
+    border: 2px solid #e9ecef;
 }
 
 .timeline-content {
     padding-left: 20px;
+}
+
+.order-status-badge .badge {
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+}
+
+.table img {
+    border: 1px solid #dee2e6;
+}
+
+.card-header {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.order-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
 </style>
 {% endblock %} 

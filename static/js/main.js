@@ -44,9 +44,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (contactForm) {
         contactForm.addEventListener('submit', function(e) {
             const submitButton = this.querySelector('button[type="submit"]');
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الإرسال...';
-            submitButton.disabled = true;
-            
+            if (submitButton) {
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الإرسال...';
+                submitButton.disabled = true;
+            }
             // لا نمنع السلوك الافتراضي هنا لأننا نريد أن يتم إرسال النموذج بالفعل
         });
     }
@@ -56,13 +57,32 @@ document.addEventListener('DOMContentLoaded', function() {
     if (addToCartForm) {
         addToCartForm.addEventListener('submit', function(e) {
             // نسمح بالسلوك الافتراضي للنموذج للتأكد من إرسال رمز CSRF
-            // e.preventDefault();
             
             const submitButton = this.querySelector('button[type="submit"]');
             if (submitButton) {
                 const originalText = submitButton.innerHTML;
                 submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الإضافة...';
                 submitButton.disabled = true;
+                
+                // تحقق من وجود المعلومات المطلوبة
+                const sizeInput = this.querySelector('select[name="size"]');
+                const colorInput = this.querySelector('select[name="color"]');
+                
+                if (sizeInput && sizeInput.required && !sizeInput.value) {
+                    e.preventDefault();
+                    showNotification('الرجاء اختيار المقاس', 'error');
+                    submitButton.innerHTML = originalText;
+                    submitButton.disabled = false;
+                    return false;
+                }
+                
+                if (colorInput && colorInput.required && !colorInput.value) {
+                    e.preventDefault();
+                    showNotification('الرجاء اختيار اللون', 'error');
+                    submitButton.innerHTML = originalText;
+                    submitButton.disabled = false;
+                    return false;
+                }
                 
                 // نعيد تفعيل الزر بعد الانتقال للصفحة التالية
                 setTimeout(() => {
@@ -91,8 +111,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const quantityInputs = document.querySelectorAll('.cart-quantity');
     quantityInputs.forEach(input => {
         input.addEventListener('change', function() {
-            const min = parseInt(this.min);
-            const max = parseInt(this.max);
+            const min = parseInt(this.min || 1);
+            const max = parseInt(this.max || 10);
             let value = parseInt(this.value);
             
             if (isNaN(value) || value < min) {
@@ -103,9 +123,60 @@ document.addEventListener('DOMContentLoaded', function() {
             
             this.value = value;
             
-            // يمكن إضافة طلب AJAX هنا لتحديث السلة
+            // طلب AJAX لتحديث السلة
+            const itemId = this.dataset.itemId;
+            if (itemId && value) {
+                updateCartQuantity(itemId, value);
+            }
         });
     });
+    
+    // وظيفة تحديث كمية المنتج في السلة
+    function updateCartQuantity(itemId, quantity) {
+        // التأكد من وجود رمز CSRF
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!csrfToken) {
+            console.error('CSRF token not found');
+            return;
+        }
+        
+        // إنشاء طلب
+        const formData = new FormData();
+        formData.append('item_id', itemId);
+        formData.append('quantity', quantity);
+        formData.append('csrf_token', csrfToken);
+        
+        // إرسال الطلب
+        fetch('/cart/update_quantity', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // تحديث إجمالي المنتج
+                const subtotalElement = document.querySelector(`#subtotal-${itemId}`);
+                if (subtotalElement) {
+                    subtotalElement.textContent = data.subtotal;
+                }
+                
+                // تحديث إجمالي السلة
+                const cartTotalElement = document.querySelector('#cart-total');
+                if (cartTotalElement) {
+                    cartTotalElement.textContent = data.total;
+                }
+            } else {
+                showNotification(data.message || 'حدث خطأ أثناء تحديث السلة', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating cart:', error);
+            showNotification('حدث خطأ أثناء تحديث السلة', 'error');
+        });
+    }
     
     // صور المنتج المصغرة
     const productThumbnails = document.querySelectorAll('.product-thumbnail');
@@ -165,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
                 <span>${message}</span>
             </div>
-            <button class="notification-close">&times;</button>
+            <button class="notification-close" aria-label="إغلاق">&times;</button>
         `;
         
         document.getElementById('notification-container').appendChild(notification);
@@ -184,6 +255,63 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 notification.remove();
             }, 300);
+        });
+    };
+    
+    // التعامل مع البحث
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+    const suggestionsContainer = document.getElementById('search-suggestions');
+    
+    if (searchForm && searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                if (suggestionsContainer) {
+                    suggestionsContainer.innerHTML = '';
+                    suggestionsContainer.style.display = 'none';
+                }
+                return;
+            }
+            
+            // طلب اقتراحات البحث
+            fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(suggestions => {
+                    if (suggestionsContainer) {
+                        if (suggestions.length > 0) {
+                            let html = '';
+                            suggestions.forEach(suggestion => {
+                                html += `<a href="${suggestion.url}" class="suggestion-item">${suggestion.name}</a>`;
+                            });
+                            suggestionsContainer.innerHTML = html;
+                            suggestionsContainer.style.display = 'block';
+                        } else {
+                            suggestionsContainer.innerHTML = '';
+                            suggestionsContainer.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching search suggestions:', error);
+                });
+        });
+        
+        // إخفاء الاقتراحات عند النقر خارجها
+        document.addEventListener('click', function(e) {
+            if (suggestionsContainer && !searchForm.contains(e.target)) {
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+        
+        // التحقق من صحة البحث قبل الإرسال
+        searchForm.addEventListener('submit', function(e) {
+            const query = searchInput.value.trim();
+            if (query.length < 2) {
+                e.preventDefault();
+                showNotification('الرجاء إدخال كلمة بحث لا تقل عن حرفين', 'error');
+            }
         });
     }
 });

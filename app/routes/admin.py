@@ -1,10 +1,12 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app, jsonify
-from app.models import Product, Design, Order, OrderStatus, Setting, Page, Announcement, FAQ, Governorate
-from app.forms import ProductForm, AdminLoginForm, OrderStatusForm, SettingsForm, PageForm, AnnouncementForm, FAQForm, DiscountForm, GovernorateForm
-from app import db
-from app.services.discounts import Discount
-from app.utils import save_image
 import os
+import secrets
+import time
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app, jsonify, abort
+from app.models import Product, Design, Order, OrderStatus, Setting, Page, Announcement, FAQ, Governorate
+from app.forms import ProductForm, AdminLoginForm, OrderStatusForm, SettingsForm, PageForm, AnnouncementForm, FAQForm, GovernorateForm
+from app import db
+from app.utils import save_image
+from app.extensions import csrf
 from datetime import datetime, timedelta
 import json
 from werkzeug.utils import secure_filename
@@ -18,28 +20,110 @@ admin = Blueprint('admin', __name__)
 # ADMIN_PASSWORD = 'superadmin123'
 
 def admin_logged_in():
-    return session.get('admin_logged_in', False)
+    """
+    التحقق من حالة تسجيل دخول المدير
+    
+    يتحقق من القيمة في الجلسة ويتأكد من صحتها
+    كما يفحص وقت انتهاء صلاحية الجلسة
+    
+    Returns:
+        bool: True إذا كان المدير قد سجل دخوله وجلسته لا تزال صالحة
+    """
+    logged_in = session.get('admin_logged_in', False)
+    
+    # DEBUG: طباعة حالة الجلسة
+    print("=== ADMIN_LOGGED_IN CHECK ===")
+    print(f"Session data: {dict(session)}")
+    print(f"admin_logged_in from session: {logged_in}")
+    print(f"admin_logged_in key exists: {'admin_logged_in' in session}")
+    print(f"admin_last_active exists: {'admin_last_active' in session}")
+    print(f"Session keys: {list(session.keys())}")
+    print("=============================")
+    
+    # التحقق من وقت آخر نشاط
+    last_active = session.get('admin_last_active')
+    if logged_in and last_active:
+        try:
+            # تحويل النص إلى كائن تاريخ إذا كان مخزناً كنص
+            if isinstance(last_active, str):
+                last_active = datetime.fromisoformat(last_active)
+                
+            # التحقق من المدة المنقضية (مثلاً ساعة واحدة)
+            if datetime.utcnow() - last_active > timedelta(hours=1):
+                # انتهت صلاحية الجلسة
+                session.pop('admin_logged_in', None)
+                print("Session expired - removing admin_logged_in")
+                return False
+                
+            # تحديث وقت آخر نشاط
+            session['admin_last_active'] = datetime.utcnow().isoformat()
+        except (ValueError, TypeError):
+            # حدث خطأ في معالجة الوقت، نعتبر أن المستخدم غير مسجل
+            session.pop('admin_logged_in', None)
+            print("Error processing time - removing admin_logged_in")
+            return False
+            
+    return logged_in
 
 def admin_login_required(f):
     from functools import wraps
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not admin_logged_in():
+        print(f"=== ADMIN_LOGIN_REQUIRED CHECK ===")
+        print(f"Checking admin_logged_in for path: {request.path}")
+        is_logged_in = admin_logged_in()
+        print(f"admin_logged_in result: {is_logged_in}")
+        print("==================================")
+        
+        if not is_logged_in:
+            # تسجيل محاولة الوصول غير المصرح به
+            log_event(f"Unauthorized admin access attempt to {request.path} from IP: {request.remote_addr}", level='warning')
+            flash('يجب تسجيل الدخول للوصول إلى هذه الصفحة', 'danger')
+            # حفظ صفحة الإحالة للعودة إليها بعد تسجيل الدخول
+            session['next'] = request.full_path
             return redirect(url_for('admin.login'))
         return f(*args, **kwargs)
     return decorated_function
 
+@admin.route('/admin', methods=['GET'])
+@admin.route('/admin/', methods=['GET'])
+def admin_index():
+    if admin_logged_in():
+        return redirect(url_for('admin.products'))
+    return redirect(url_for('admin.login'))
+
+@admin.route('/admin/home', methods=['GET'])
+@admin_login_required
+def admin_home():
+    return redirect(url_for('admin.products'))
+
 @admin.route('/admin/login', methods=['GET', 'POST'])
 def login():
+    print(f"=== LOGIN FUNCTION CALLED ===")
+    print(f"Request method: {request.method}")
+    print(f"Current session: {dict(session)}")
+    print("==============================")
+    
     if admin_logged_in():
+        print("Already logged in, redirecting to products")
         return redirect(url_for('admin.products'))
     form = AdminLoginForm()
     if form.validate_on_submit():
-        email = form.email.data
+        email = form.email.data.strip().lower()  # تنظيف وتوحيد تنسيق البريد الإلكتروني
         password = form.password.data
         #  استخدام القيم من الإعدادات
         admin_email_from_config = current_app.config.get('ADMIN_EMAIL')
         admin_password_from_config = current_app.config.get('ADMIN_PASSWORD')
+
+        # DEBUG: طباعة البيانات للتأكد
+        print("=== DEBUG LOGIN ===")
+        print(f"Email entered: {email}")
+        print(f"Password entered: {password}")
+        print(f"Admin email from config: {admin_email_from_config}")
+        print(f"Admin password from config: {admin_password_from_config}")
+        print(f"Email match: {email.lower() == admin_email_from_config.lower()}")
+        print(f"Password match: {secrets.compare_digest(password, admin_password_from_config)}")
+        print("==================")
 
         # Validate configuration values
         if not admin_email_from_config or not isinstance(admin_email_from_config, str) or \
@@ -52,19 +136,86 @@ def login():
             flash('خطأ في إعدادات النظام. يرجى التواصل مع مسؤول الموقع.', 'danger') 
             return render_template('admin/login.html', form=form)
 
+        # منع هجمات الاختراق عن طريق التأخير المقصود في حالة الإدخال الخاطئ
+        # استخدام مقارنة آمنة من حيث التوقيت
+        
+        # إضافة تأخير عشوائي صغير لمنع هجمات التوقيت
+        time.sleep(0.2 + secrets.randbelow(10) / 100)  # بين 0.2 و 0.3 ثانية
+        
+        # حد محاولات تسجيل الدخول الفاشلة
+        failed_attempts = session.get('failed_login_attempts', 0)
+        if failed_attempts >= 5:
+            # التحقق من الوقت المنقضي منذ آخر محاولة
+            last_attempt_time = session.get('last_failed_attempt')
+            if last_attempt_time:
+                try:
+                    if isinstance(last_attempt_time, str):
+                        last_attempt_time = datetime.fromisoformat(last_attempt_time)
+                    
+                    # إذا لم تنقضي 15 دقيقة بعد، نرفض المحاولة
+                    if datetime.utcnow() - last_attempt_time < timedelta(minutes=15):
+                        log_event(f"Blocked admin login due to too many failed attempts from IP: {request.remote_addr}", level='warning')
+                        flash('تم تعطيل تسجيل الدخول مؤقتاً بسبب كثرة المحاولات الفاشلة. يرجى المحاولة لاحقاً.', 'danger')
+                        return render_template('admin/login.html', form=form)
+                    else:
+                        # إعادة تعيين العداد بعد انقضاء المدة
+                        session['failed_login_attempts'] = 0
+                except (ValueError, TypeError):
+                    # إعادة تعيين في حالة الخطأ
+                    session['failed_login_attempts'] = 0
+
         # Perform comparison (case-insensitive email, case-sensitive password)
-        if email.lower() == admin_email_from_config.lower() and password == admin_password_from_config:
+        print(f"About to check credentials...")
+        if email.lower() == admin_email_from_config.lower() and secrets.compare_digest(password, admin_password_from_config):
+            print(f"Credentials match! Setting admin_logged_in...")
             session['admin_logged_in'] = True
+            session.permanent = True  # تفعيل الجلسة الدائمة
+            
+            # تسجيل وقت تسجيل الدخول وتخزينه في الجلسة (naive isoformat)
+            session['admin_last_active'] = datetime.utcnow().isoformat()
+            
+            # إعادة تعيين عداد المحاولات الفاشلة
+            session.pop('failed_login_attempts', None)
+            session.pop('last_failed_attempt', None)
+            
+            # DEBUG: طباعة حالة الجلسة بعد تسجيل الدخول
+            print("=== SESSION AFTER LOGIN ===")
+            print(f"Session data: {dict(session)}")
+            print(f"admin_logged_in: {session.get('admin_logged_in')}")
+            print(f"admin_last_active: {session.get('admin_last_active')}")
+            print("===========================")
+            
+            log_event(f"Admin login successful from IP: {request.remote_addr}", level='info')
             flash('تم تسجيل الدخول بنجاح', 'success')
+            
+            # العودة إلى الصفحة المطلوبة سابقاً إذا كانت موجودة
+            next_page = session.pop('next', None)
+            if next_page:
+                return redirect(next_page)
             return redirect(url_for('admin.products'))
         else:
+            print(f"Credentials do not match!")
+            # زيادة عدد المحاولات الفاشلة
+            failed_attempts = session.get('failed_login_attempts', 0) + 1
+            session['failed_login_attempts'] = failed_attempts
+            session['last_failed_attempt'] = datetime.utcnow().isoformat()
+            
+            log_event(f"Failed admin login attempt #{failed_attempts} for email: {email} from IP: {request.remote_addr}", level='warning')
             flash('بيانات الدخول غير صحيحة', 'danger')
+            
     return render_template('admin/login.html', form=form)
 
 @admin.route('/admin/logout')
 def logout():
-    session.pop('admin_logged_in', None)
+    if 'admin_logged_in' in session:
+        log_event(f"Admin logout from IP: {request.remote_addr}", level='info')
+        session.pop('admin_logged_in', None)
+        
+    # إجراءات أمان إضافية عند تسجيل الخروج
+    session.clear()  # مسح كل بيانات الجلسة
     flash('تم تسجيل الخروج بنجاح', 'success')
+    
+    # لمنع هجمات إعادة التوجيه المفتوحة، نتأكد من إعادة التوجيه لعنوان داخلي فقط
     return redirect(url_for('admin.login'))
 
 @admin.route('/admin/products')
@@ -100,6 +251,7 @@ def add_product():
             featured=form.featured.data,
             in_stock=form.in_stock.data,  # حفظ حالة "متوفر في المخزون"
             category=form.category.data,
+            is_palestine=form.is_palestine.data,
             image=image_filename  # حفظ اسم الصورة
         )
         log_event(f"New product created: {product.name} (ID: temp) by admin. Image: {image_filename}", level='info')
@@ -133,6 +285,7 @@ def edit_product(product_id):
         product.featured = form.featured.data
         product.in_stock = form.in_stock.data  # تحديث حالة "متوفر في المخزون"
         product.category = form.category.data
+        product.is_palestine = form.is_palestine.data
         db.session.commit()
         flash('تم تحديث المنتج بنجاح', 'success')
         return redirect(url_for('admin.products'))
@@ -149,6 +302,7 @@ def edit_product(product_id):
 
 @admin.route('/admin/delete_product/<int:product_id>', methods=['POST'])
 @admin_login_required
+@csrf.exempt  # إعفاء هذا المسار من التحقق من CSRF
 def delete_product(product_id):
     product = Product.query.get_or_404(product_id)
     db.session.delete(product)
@@ -241,8 +395,53 @@ def custom_designs():
 @admin.route('/admin/orders')
 @admin_login_required
 def orders():
-    orders = Order.query.order_by(Order.created_at.desc()).all()
-    return render_template('admin/orders.html', orders=orders)
+    # Get filter parameters
+    status_filter = request.args.get('status')
+    payment_method_filter = request.args.get('payment_method')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    show_archived = request.args.get('show_archived', 'false').lower() == 'true'
+    
+    # Build query
+    query = Order.query
+    
+    if not show_archived:
+        query = query.filter(Order.archived == False)
+    
+    if status_filter:
+        query = query.filter(Order.status == status_filter)
+    
+    if payment_method_filter:
+        query = query.filter(Order.payment_method == payment_method_filter)
+    
+    if date_from:
+        query = query.filter(Order.created_at >= date_from)
+    
+    if date_to:
+        query = query.filter(Order.created_at <= date_to + ' 23:59:59')
+    
+    # Order by creation date (newest first)
+    orders = query.order_by(Order.created_at.desc()).all()
+    
+    return render_template('admin/orders.html', orders=orders, show_archived=show_archived)
+
+@admin.route('/admin/orders/archive/<int:order_id>', methods=['POST'])
+@admin_login_required
+def archive_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    order.archived = True
+    db.session.commit()
+    flash('تم أرشفة الطلب بنجاح', 'success')
+    return redirect(url_for('admin.orders'))
+
+@admin.route('/admin/orders/unarchive/<int:order_id>', methods=['POST'])
+@admin_login_required
+def unarchive_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    order.archived = False
+    db.session.commit()
+    flash('تم إلغاء أرشفة الطلب بنجاح', 'success')
+    return redirect(url_for('admin.orders'))
 
 @admin.route('/admin/order/<int:order_id>', methods=['GET', 'POST'])
 @admin_login_required
@@ -265,94 +464,6 @@ def order_detail(order_id):
 
     status_history = order.status_history.all()
     return render_template('admin/order_detail.html', order=order, form=form, status_history=status_history)
-
-@admin.route('/admin/discounts')
-@admin_login_required
-def discounts():
-    form = DiscountForm()
-    now = datetime.utcnow()
-    
-    active_discounts = Discount.query.filter(
-        Discount.is_active == True,
-        Discount.end_date >= now
-    ).order_by(Discount.end_date.asc()).all()
-    
-    inactive_discounts = Discount.query.filter(
-        (Discount.is_active == False) | (Discount.end_date < now)
-    ).order_by(Discount.end_date.desc()).all()
-
-    return render_template(
-        'admin/discounts.html', 
-        active_discounts=active_discounts, 
-        inactive_discounts=inactive_discounts,
-        form=form
-    )
-
-@admin.route('/admin/discounts/add', methods=['POST'])
-@admin_login_required
-def add_discount_api():
-    form = DiscountForm(request.form)
-    if form.validate():
-        try:
-            # تحويل تاريخ البدء إلى كائن datetime (بداية اليوم)
-            parsed_start_date = datetime.strptime(form.start_date.data, '%Y-%m-%d')
-            
-            # تحويل تاريخ الانتهاء إلى كائن datetime (نهاية اليوم المحدد)
-            parsed_end_date_day_start = datetime.strptime(form.end_date.data, '%Y-%m-%d')
-            parsed_end_date = parsed_end_date_day_start + timedelta(days=1) - timedelta(microseconds=1)
-
-            new_discount = Discount(
-                code=form.code.data.upper(),
-                type=form.type.data,
-                value=form.value.data,
-                min_purchase=form.min_purchase.data if form.min_purchase.data is not None else None,
-                max_discount=form.max_discount.data if form.max_discount.data is not None else None,
-                usage_limit=form.usage_limit.data if form.usage_limit.data is not None else None,
-                start_date=parsed_start_date,
-                end_date=parsed_end_date,
-                is_active=form.is_active.data # استخدام القيمة من الفورم
-            )
-            db.session.add(new_discount)
-            db.session.commit()
-            # إرجاع رسالة نجاح مع بيانات الكوبون المضاف إذا أردت عرضها في الواجهة
-            return jsonify({
-                'success': True, 
-                'message': 'تم إضافة الكوبون بنجاح',
-                'discount': {
-                    'id': new_discount.id,
-                    'code': new_discount.code,
-                    'type': new_discount.type,
-                    'value': new_discount.value,
-                    'start_date': new_discount.start_date.strftime('%Y-%m-%d'),
-                    'end_date': new_discount.end_date.strftime('%Y-%m-%d %H:%M:%S'), # عرض الوقت للتأكيد
-                    'is_active': new_discount.is_active
-                }
-            }), 200
-        except ValueError as ve: # لالتقاط أخطاء تنسيق التاريخ
-            db.session.rollback()
-            current_app.logger.error(f"Error adding discount due to date format: {ve}")
-            return jsonify({'success': False, 'message': f'خطأ في تنسيق التاريخ: {ve}. يرجى استخدام YYYY-MM-DD.'}), 400
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Error adding discount: {e}")
-            return jsonify({'success': False, 'message': f'حدث خطأ: {str(e)}'}), 500
-    else:
-        # جمع الأخطاء من النموذج
-        errors = {field.name: field.errors[0] for field in form if field.errors}
-        return jsonify({'success': False, 'message': 'بيانات غير صالحة', 'errors': errors}), 400
-
-@admin.route('/admin/deactivate_discount/<int:discount_id>', methods=['POST'])
-@admin_login_required
-def deactivate_discount(discount_id):
-    discount = Discount.query.get_or_404(discount_id)
-    discount.is_active = False
-    db.session.commit()
-    flash('تم تعطيل كود الخصم', 'success')
-    return redirect(url_for('admin.discounts'))
-
-@admin.route('/admin/')
-def admin_home():
-    return redirect(url_for('admin.products'))
 
 @admin.route('/admin/settings', methods=['GET', 'POST'])
 @admin_login_required
@@ -441,6 +552,15 @@ def edit_page(page_id):
         return redirect(url_for('admin.pages'))
     return render_template('admin/edit_page.html', form=form, page=page, title='تعديل صفحة')
 
+@admin.route('/admin/pages/delete/<int:page_id>', methods=['POST'])
+@admin_login_required
+def delete_page(page_id):
+    page = Page.query.get_or_404(page_id)
+    db.session.delete(page)
+    db.session.commit()
+    flash('تم حذف الصفحة بنجاح', 'success')
+    return redirect(url_for('admin.pages'))
+
 # Announcement Management
 @admin.route('/admin/announcements')
 @admin_login_required
@@ -524,6 +644,16 @@ def edit_faq(faq_id):
         return redirect(url_for('admin.faqs'))
     return render_template('admin/faq_form.html', form=form)
 
+@admin.route('/admin/faqs/delete/<int:faq_id>', methods=['POST'])
+@admin_login_required
+@csrf.exempt  # إعفاء هذا المسار من التحقق من CSRF
+def delete_faq(faq_id):
+    faq = FAQ.query.get_or_404(faq_id)
+    db.session.delete(faq)
+    db.session.commit()
+    flash('تم حذف السؤال بنجاح.', 'success')
+    return redirect(url_for('admin.faqs'))
+
 # Governorate Management
 @admin.route('/admin/governorates')
 @admin_login_required
@@ -576,6 +706,7 @@ def edit_governorate(gov_id):
 
 @admin.route('/admin/governorates/delete/<int:gov_id>', methods=['POST'])
 @admin_login_required
+@csrf.exempt  # إعفاء هذا المسار من التحقق من CSRF
 def delete_governorate(gov_id):
     governorate = Governorate.query.get_or_404(gov_id)
     try:

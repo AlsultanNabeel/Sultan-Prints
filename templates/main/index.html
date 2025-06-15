@@ -76,12 +76,8 @@
 <div class="categories-strip py-3 px-2 bg-light border-bottom mb-4">
   <div class="container">
     <div class="d-flex flex-nowrap overflow-auto gap-3 align-items-center">
-      <a href="{{ url_for('main.products', category='palestine') }}" class="category-link btn btn-outline-success rounded-pill px-4">فلسطين</a>
-      <a href="{{ url_for('main.products', category='trending') }}" class="category-link btn btn-outline-dark rounded-pill px-4">تريند</a>
-      <a href="{{ url_for('main.products', category='men') }}" class="category-link btn btn-outline-dark rounded-pill px-4">رجالي</a>
-      <a href="{{ url_for('main.products', category='women') }}" class="category-link btn btn-outline-dark rounded-pill px-4">نسائي</a>
-      <a href="{{ url_for('main.products', category='kids') }}" class="category-link btn btn-outline-dark rounded-pill px-4">أطفال</a>
-      <a href="{{ url_for('main.products') }}" class="category-link btn btn-outline-dark rounded-pill px-4">الكل</a>
+      <a href="{{ url_for('main.products') }}" class="category-link btn btn-outline-success rounded-pill px-4">الكل</a>
+      <a href="{{ url_for('main.products', category='palestine') }}" class="category-link btn btn-outline-dark rounded-pill px-4">فلسطين</a>
     </div>
   </div>
 </div>
@@ -97,12 +93,8 @@
           <div class="card product-card h-100 border-0 shadow-sm">
             <div class="position-relative">
               <img src="{{ url_for('static', filename=product.image or 'images/placeholder.jpg') }}" class="card-img-top" alt="{{ product.name }}">
-              {% if false %} {# Hide is_palestine and is_trending badges as fields are not in Product model #}
               {% if product.is_palestine %}
               <span class="badge bg-success position-absolute top-0 start-0 m-2">فلسطين</span>
-              {% elif product.is_trending %}
-              <span class="badge bg-dark position-absolute top-0 start-0 m-2">تريند</span>
-                {% endif %}
               {% endif %}
             </div>
             <div class="card-body d-flex flex-column">
@@ -139,14 +131,64 @@
                 <p class="mb-0">احصل على آخر العروض والتخفيضات مباشرة إلى بريدك الإلكتروني</p>
             </div>
             <div class="col-md-6">
-                <form class="newsletter-form d-flex">
-                    <input type="email" class="form-control me-2" placeholder="بريدك الإلكتروني">
-                    <button type="submit" class="btn btn-light">اشترك</button>
+                <form class="newsletter-form d-flex" id="newsletterForm">
+                    <input type="email" class="form-control me-2" placeholder="بريدك الإلكتروني" id="newsletterEmail" required>
+                    <button type="submit" class="btn btn-light" id="newsletterSubmit">
+                        <span class="btn-text">اشترك</span>
+                        <span class="btn-loading d-none">
+                            <i class="fas fa-spinner fa-spin me-2"></i>جاري...
+                        </span>
+                    </button>
                 </form>
-                <small class="text-white-50 d-block mt-2">ملاحظة: خدمة النشرة البريدية قيد التطوير حاليًا.</small>
+                <div id="newsletterMessage" class="mt-2"></div>
             </div>
         </div>
     </div>
 </section>
+
+<script>
+document.getElementById('newsletterForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('newsletterEmail').value;
+    const submitBtn = document.getElementById('newsletterSubmit');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+    const messageDiv = document.getElementById('newsletterMessage');
+    
+    // Show loading state
+    btnText.classList.add('d-none');
+    btnLoading.classList.remove('d-none');
+    submitBtn.disabled = true;
+    messageDiv.innerHTML = '';
+    
+    try {
+        const response = await fetch('/newsletter/subscribe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ email: email })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            messageDiv.innerHTML = '<small class="text-success">تم الاشتراك بنجاح! شكراً لك.</small>';
+            document.getElementById('newsletterEmail').value = '';
+        } else {
+            messageDiv.innerHTML = `<small class="text-warning">${data.message || 'حدث خطأ ما. يرجى المحاولة مرة أخرى.'}</small>`;
+        }
+    } catch (error) {
+        messageDiv.innerHTML = '<small class="text-danger">حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.</small>';
+    } finally {
+        // Restore button state
+        btnText.classList.remove('d-none');
+        btnLoading.classList.add('d-none');
+        submitBtn.disabled = false;
+    }
+});
+</script>
 
 {% endblock %}

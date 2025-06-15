@@ -89,9 +89,8 @@ class Order(db.Model):
     payment_method = db.Column(db.String(32), nullable=False)
     vodafone_receipt = db.Column(db.String(255), nullable=True)
     total_amount = db.Column(db.Float, nullable=False, default=0)
-    discount_code = db.Column(db.String(20), nullable=True)
-    discount_amount = db.Column(db.Float, nullable=True, default=0)
     status = db.Column(db.String(32), default='pending')
+    archived = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     order_items = db.relationship('OrderItem', backref='order', lazy='dynamic', cascade="all, delete-orphan")
     status_history = db.relationship('OrderStatus', backref='order', lazy='dynamic', order_by='OrderStatus.timestamp.desc()', cascade="all, delete-orphan")
@@ -282,3 +281,21 @@ order_product = db.Table('order_product',
     db.Column('order_id', db.Integer, db.ForeignKey('orders.id'), primary_key=True),
     db.Column('product_id', db.Integer, db.ForeignKey('products.id'), primary_key=True)
 )
+
+class CustomDesign(db.Model):
+    """نموذج التصميم المخصص"""
+    __tablename__ = 'custom_designs'
+    id = db.Column(db.Integer, primary_key=True)
+    customer_name = db.Column(db.String(120), nullable=True)
+    customer_email = db.Column(db.String(120), nullable=True)
+    customer_phone = db.Column(db.String(32), nullable=True)
+    address = db.Column(db.Text, nullable=True)
+    governorate_id = db.Column(db.Integer, db.ForeignKey('governorates.id'), nullable=True)
+    design_file = db.Column(db.String(255), nullable=False)
+    design_description = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(32), default='pending')
+    archived = db.Column(db.Boolean, default=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    governorate = db.relationship('Governorate', backref='custom_designs')
+    order = db.relationship('Order', backref='custom_designs')
