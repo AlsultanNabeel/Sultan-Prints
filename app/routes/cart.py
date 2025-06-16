@@ -209,7 +209,7 @@ def remove_from_cart(item_id):
     flash('تم حذف المنتج من سلة التسوق', 'success')
     return redirect(url_for('cart.cart'))
 
-@cart_bp.route('/checkout', methods=['POST'])
+@cart_bp.route('/checkout', methods=['GET', 'POST'])
 @csrf.exempt
 def checkout():
     """إنشاء طلب جديد"""
