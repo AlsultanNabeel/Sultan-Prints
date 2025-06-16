@@ -12,7 +12,6 @@ from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from config import config
 from app.utils.security import setup_security_monitoring
-from app.utils.backup import DatabaseBackup
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -129,9 +128,13 @@ def create_app(config_name='default'):
     app.register_blueprint(cart_blueprint)
 
     # تفعيل النسخ الاحتياطي التلقائي
-    if app.config['ENABLE_AUTO_BACKUP']:
-        backup = DatabaseBackup()
-        backup.schedule_backups()
-        app.logger.info('تم تفعيل النسخ الاحتياطي التلقائي')
+    if app.config.get('ENABLE_AUTO_BACKUP', False):
+        try:
+            from scripts.backup import DatabaseBackup
+            backup = DatabaseBackup()
+            backup.schedule_backups()
+            app.logger.info('تم تفعيل النسخ الاحتياطي التلقائي')
+        except ImportError as e:
+            app.logger.warning(f'لم يتم تفعيل النسخ الاحتياطي التلقائي: {str(e)}')
 
     return app
