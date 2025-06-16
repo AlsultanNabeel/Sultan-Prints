@@ -46,7 +46,11 @@ def admin_logged_in():
         try:
             # تحويل النص إلى كائن تاريخ إذا كان مخزناً كنص
             if isinstance(last_active, str):
-                last_active = datetime.fromisoformat(last_active)
+                last_active = datetime.fromisoformat(last_active.replace('Z', '+00:00'))
+            elif isinstance(last_active, datetime):
+                # إذا كان timezone-aware، نحوله إلى UTC
+                if last_active.tzinfo is not None:
+                    last_active = last_active.replace(tzinfo=None)
                 
             # التحقق من المدة المنقضية (مثلاً ساعة واحدة)
             if datetime.utcnow() - last_active > timedelta(hours=1):
@@ -56,11 +60,11 @@ def admin_logged_in():
                 return False
                 
             # تحديث وقت آخر نشاط
-            session['admin_last_active'] = datetime.utcnow().isoformat()
-        except (ValueError, TypeError):
+            session['admin_last_active'] = datetime.utcnow()
+        except (ValueError, TypeError, AttributeError) as e:
             # حدث خطأ في معالجة الوقت، نعتبر أن المستخدم غير مسجل
             session.pop('admin_logged_in', None)
-            print("Error processing time - removing admin_logged_in")
+            print(f"Error processing time - removing admin_logged_in: {e}")
             return False
             
     return logged_in
