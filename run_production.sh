@@ -4,6 +4,10 @@
 
 echo "🚀 بدء تشغيل متجر سلطان برينتس في بيئة الإنتاج..."
 
+# تعيين بيئة التشغيل
+export FLASK_ENV=production
+export FLASK_APP=wsgi.py
+
 # التحقق من المتغيرات البيئية المطلوبة
 if [ -z "$DATABASE_URL" ]; then
     echo "❌ خطأ: متغير DATABASE_URL غير محدد"
@@ -29,15 +33,14 @@ flask seed
 
 # تشغيل الخادم
 echo "🌐 تشغيل خادم الإنتاج..."
-echo "📍 العنوان: http://0.0.0.0:5000"
-echo "🔧 لوحة التحكم: http://0.0.0.0:5000/admin"
+echo "📍 العنوان: http://0.0.0.0:8080"
+echo "🔧 لوحة التحكم: http://0.0.0.0:8080/admin"
 
 # تشغيل Gunicorn مع إعدادات الإنتاج
 exec gunicorn \
-    --bind 0.0.0.0:5000 \
+    --bind 0.0.0.0:8080 \
     --workers 4 \
-    --worker-class gthread \
-    --threads 2 \
+    --worker-class sync \
     --timeout 120 \
     --keep-alive 2 \
     --max-requests 1000 \
@@ -45,4 +48,5 @@ exec gunicorn \
     --access-logfile - \
     --error-logfile - \
     --log-level info \
+    --capture-output \
     wsgi:app
