@@ -65,8 +65,10 @@ class Config:
     ALLOWED_EXTENSIONS = set(os.environ.get('ALLOWED_EXTENSIONS', 'jpg,jpeg,png,gif').split(','))
     
     # إعدادات النسخ الاحتياطي
+    ENABLE_AUTO_BACKUP = os.environ.get('ENABLE_AUTO_BACKUP', 'False').lower() == 'true'
     BACKUP_BUCKET = os.environ.get('BACKUP_BUCKET')
     BACKUP_RETENTION_DAYS = int(os.environ.get('BACKUP_RETENTION_DAYS', 7))
+    BACKUP_SCHEDULE = os.environ.get('BACKUP_SCHEDULE', '0 3 * * *')  # يومياً في الساعة 3 صباحاً
     
     # إعدادات Stripe (إذا كنت تستخدمه)
     STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')

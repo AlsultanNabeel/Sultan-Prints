@@ -14,7 +14,7 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         gcc \
-        default-libmysqlclient-dev \
+        postgresql-client \
         pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,7 +32,7 @@ RUN mkdir -p static/uploads/custom static/uploads/designs static/uploads/product
 RUN chmod +x run_production.sh
 
 # Expose port
-EXPOSE 5000
+EXPOSE 8080
 
 # Run the application
 CMD ["./run_production.sh"] 
