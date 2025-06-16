@@ -1,4 +1,4 @@
-from flask import request, current_app
+from flask import request, current_app, render_template
 from functools import wraps
 import logging
 from datetime import datetime
@@ -7,13 +7,13 @@ import json
 
 def force_https():
     """تأكد من استخدام HTTPS"""
-    if not request.is_secure and current_app.env == 'production':
+    if not request.is_secure and current_app.config.get('ENV') == 'production':
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
 
 def secure_url(url):
     """تحويل الروابط إلى HTTPS في بيئة الإنتاج"""
-    if current_app.env == 'production' and url.startswith('http://'):
+    if current_app.config.get('ENV') == 'production' and url.startswith('http://'):
         return url.replace('http://', 'https://', 1)
     return url
 
@@ -52,7 +52,7 @@ def monitor_errors():
                 mailhost=(current_app.config['MAIL_SERVER'],
                          current_app.config['MAIL_PORT']),
                 fromaddr=f"error-monitor@{current_app.config['MAIL_SERVER']}",
-                toaddrs=[current_app.config['ADMIN_EMAIL']],
+                toaddrs=[current_app.config.get('ADMIN_EMAIL', 'admin@example.com')],
                 subject='خطأ حرج في تطبيق Sultan Prints'
             )
             mail_handler.setLevel(logging.ERROR)
@@ -88,7 +88,7 @@ def setup_security_monitoring(app):
     @app.before_request
     def before_request():
         # تأكد من استخدام HTTPS
-        if app.env == 'production' and not request.is_secure:
+        if app.config.get('ENV') == 'production' and not request.is_secure:
             return force_https()
         
         # تسجيل محاولات الوصول المشبوهة
