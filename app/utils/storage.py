@@ -6,17 +6,44 @@ from werkzeug.utils import secure_filename
 import secrets
 from PIL import Image
 import io
+from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SpacesStorage:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(SpacesStorage, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+    
     def __init__(self):
-        self.spaces_client = boto3.client('s3',
-            region_name=current_app.config.get('SPACES_REGION', 'fra1'),
-            endpoint_url=f"https://{current_app.config.get('SPACES_REGION', 'fra1')}.digitaloceanspaces.com",
-            aws_access_key_id=current_app.config.get('SPACES_KEY'),
-            aws_secret_access_key=current_app.config.get('SPACES_SECRET')
+        if self._initialized:
+            return
+            
+        self._initialized = True
+        self.client = None
+        self.bucket_name = None
+        self.region_name = None
+        self.endpoint_url = None
+        
+    def init_app(self, app):
+        """تهيئة التخزين مع إعدادات التطبيق"""
+        self.bucket_name = app.config.get('SPACES_BUCKET_NAME')
+        self.region_name = app.config.get('SPACES_REGION', 'fra1')
+        self.endpoint_url = f'https://{self.region_name}.digitaloceanspaces.com'
+        
+        self.client = boto3.client('s3',
+            region_name=self.region_name,
+            endpoint_url=self.endpoint_url,
+            aws_access_key_id=app.config.get('SPACES_KEY'),
+            aws_secret_access_key=app.config.get('SPACES_SECRET')
         )
-        self.bucket_name = current_app.config.get('SPACES_BUCKET')
-        self.cdn_domain = current_app.config.get('SPACES_CDN_DOMAIN')
+        
+        logger.info(f"تم تهيئة SpacesStorage بنجاح - المنطقة: {self.region_name}, البكت: {self.bucket_name}")
 
     def save_image(self, file, folder='designs'):
         """حفظ الصورة في DigitalOcean Spaces"""
@@ -50,7 +77,7 @@ class SpacesStorage:
             spaces_path = f"uploads/{folder}/{picture_fn}"
             
             # رفع الملف إلى Spaces
-            self.spaces_client.upload_fileobj(
+            self.client.upload_fileobj(
                 img_byte_arr,
                 self.bucket_name,
                 spaces_path,
@@ -61,32 +88,36 @@ class SpacesStorage:
             )
             
             # إرجاع المسار النسبي للصورة
-            if self.cdn_domain:
-                return f"https://{self.cdn_domain}/{spaces_path}"
-            return f"https://{self.bucket_name}.{current_app.config.get('SPACES_REGION')}.digitaloceanspaces.com/{spaces_path}"
+            if self.endpoint_url:
+                return f"https://{self.endpoint_url}/{spaces_path}"
+            return f"https://{self.bucket_name}.{self.region_name}.digitaloceanspaces.com/{spaces_path}"
             
         except Exception as e:
-            current_app.logger.error(f"Error saving image to Spaces: {str(e)}", exc_info=True)
+            logger.error(f"Error saving image to Spaces: {str(e)}", exc_info=True)
             return None
 
     def delete_image(self, image_url):
         """حذف صورة من DigitalOcean Spaces"""
         try:
             # استخراج المسار من URL
-            if self.cdn_domain and image_url.startswith(f"https://{self.cdn_domain}/"):
-                key = image_url.replace(f"https://{self.cdn_domain}/", "")
+            if self.endpoint_url and image_url.startswith(f"https://{self.endpoint_url}/"):
+                key = image_url.replace(f"https://{self.endpoint_url}/", "")
             else:
-                key = image_url.split(f"{self.bucket_name}.{current_app.config.get('SPACES_REGION')}.digitaloceanspaces.com/")[-1]
+                key = image_url.split(f"{self.bucket_name}.{self.region_name}.digitaloceanspaces.com/")[-1]
             
             # حذف الملف
-            self.spaces_client.delete_object(
+            self.client.delete_object(
                 Bucket=self.bucket_name,
                 Key=key
             )
             return True
         except Exception as e:
-            current_app.logger.error(f"Error deleting image from Spaces: {str(e)}", exc_info=True)
+            logger.error(f"Error deleting image from Spaces: {str(e)}", exc_info=True)
             return False
 
-# إنشاء نسخة عامة من الكلاس
-spaces_storage = SpacesStorage() 
+# تهيئة كائن التخزين
+spaces_storage = SpacesStorage()
+
+def init_storage(app):
+    """تهيئة التخزين مع تطبيق Flask"""
+    spaces_storage.init_app(app) 

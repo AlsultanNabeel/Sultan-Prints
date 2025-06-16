@@ -12,6 +12,7 @@ from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from config import config
 from app.utils.security import setup_security_monitoring
+from app.utils.storage import init_storage
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -77,6 +78,9 @@ def create_app(config_name='default'):
     
     # تفعيل نظام المراقبة الأمنية
     setup_security_monitoring(app)
+
+    # تهيئة التخزين
+    init_storage(app)
 
     # Register custom Jinja filter
     app.jinja_env.filters['nl2br'] = nl2br
