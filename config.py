@@ -120,6 +120,11 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     
+    # إعدادات البريد الإلكتروني للإنتاج
+    MAIL_USE_TLS = True
+    MAIL_USE_SSL = False
+    MAIL_PORT = 587
+    
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
@@ -134,17 +139,15 @@ class ProductionConfig(Config):
             if app.config.get('MAIL_USERNAME') or app.config.get('MAIL_PASSWORD'):
                 auth = (app.config.get('MAIL_USERNAME'),
                        app.config.get('MAIL_PASSWORD'))
-            secure = None
-            if app.config.get('MAIL_USE_TLS'):
-                secure = ()
+            
             mail_handler = SMTPHandler(
                 mailhost=(app.config.get('MAIL_SERVER'),
                          app.config.get('MAIL_PORT')),
-                fromaddr=f"no-reply@{app.config.get('MAIL_SERVER')}",
+                fromaddr=app.config.get('MAIL_DEFAULT_SENDER', 'error-monitor@smtp.gmail.com'),
                 toaddrs=[app.config.get('ADMIN_EMAIL')],
                 subject='Sultan Prints Failure',
                 credentials=auth,
-                secure=secure)
+                secure=())
             mail_handler.setLevel(logging.ERROR)
             app.logger.addHandler(mail_handler)
 

@@ -20,6 +20,11 @@ mail = Mail()
 login_manager = LoginManager()
 csrf = CSRFProtect()
 
+@login_manager.user_loader
+def load_user(user_id):
+    from app.models import User
+    return User.query.get(int(user_id))
+
 def nl2br(value):
     """Converts newlines in a string to HTML <br> tags."""
     if not isinstance(value, str):
