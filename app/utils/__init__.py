@@ -6,6 +6,7 @@ from ..extensions import db
 from ..models import Setting, Cart, Product, CartItem
 import uuid
 import logging
+from .storage import spaces_storage
 
 def log_event(message, level='info'):
     """Logs an event using the application's logger."""
@@ -33,46 +34,21 @@ def allowed_file(filename):
         return False
 
 def save_image(file, folder='designs'):
-    """Saves an uploaded image and returns the filename."""
+    """Saves an uploaded image to DigitalOcean Spaces and returns the URL."""
     if not file or not allowed_file(file.filename):
         return None
     
     try:
-        random_hex = secrets.token_hex(8)
-        _, f_ext = os.path.splitext(file.filename)
-        picture_fn = random_hex + f_ext
-        uploads_folder = os.path.join(current_app.static_folder, 'uploads')
-        target_folder = os.path.join(uploads_folder, folder)
-        picture_path = os.path.join(target_folder, picture_fn)
-        
-        # التأكد من وجود المجلدات
-        os.makedirs(os.path.dirname(picture_path), exist_ok=True)
-        
-        # التحقق من صحة الصورة قبل الحفظ
-        try:
-            i = Image.open(file)
-            i.verify()  # التحقق من أن الملف هو صورة صالحة
-            file.seek(0)  # إعادة تعيين المؤشر بعد التحقق
-            
-            i = Image.open(file)
-            # استخدام LANCZOS للحصول على جودة أفضل
-            i.thumbnail((1200, 1200), Image.LANCZOS)
-            
-            # حفظ بجودة عالية مع الحفاظ على الشفافية للصور PNG
-            if f_ext.lower() in ('.png', '.webp'):
-                i.save(picture_path, optimize=True)
-            else:
-                i.save(picture_path, quality=90, optimize=True)
-            
-            # تسجيل نجاح رفع الصورة
-            log_event(f"Image uploaded successfully: {picture_fn} to {folder}", level='info')
-            
-            return os.path.join('uploads', folder, picture_fn)
-        except Exception as e:
-            log_event(f"Error processing image: {e}", level='error')
+        # استخدام spaces_storage لحفظ الصورة
+        image_url = spaces_storage.save_image(file, folder)
+        if image_url:
+            log_event(f"Image uploaded successfully to Spaces: {image_url}", level='info')
+            return image_url
+        else:
+            log_event("Failed to upload image to Spaces", level='error')
             return None
     except Exception as e:
-        log_event(f"Error saving image: {e}", level='error')
+        log_event(f"Error saving image to Spaces: {e}", level='error')
         return None
 
 def inject_settings():

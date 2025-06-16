@@ -25,6 +25,13 @@ class Config:
     FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
     DEBUG = FLASK_ENV == 'development'
     
+    # إعدادات DigitalOcean Spaces
+    SPACES_KEY = os.environ.get('SPACES_KEY')
+    SPACES_SECRET = os.environ.get('SPACES_SECRET')
+    SPACES_REGION = os.environ.get('SPACES_REGION', 'fra1')
+    SPACES_BUCKET = os.environ.get('SPACES_BUCKET')
+    SPACES_CDN_DOMAIN = os.environ.get('SPACES_CDN_DOMAIN')  # اختياري - إذا كنت تستخدم CDN
+    
     # إعدادات قاعدة البيانات
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'postgresql://postgres:postgres@localhost:5432/sultan_prints'

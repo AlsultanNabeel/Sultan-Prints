@@ -220,7 +220,22 @@ def checkout():
         form.governorate_id.choices = [(g.id, g.name) for g in governorates]
         
         if request.method == 'GET':
-            return render_template('cart/checkout.html', form=form)
+            cart = get_or_create_cart()
+            if not cart:
+                flash('حدث خطأ في الوصول إلى سلة التسوق', 'error')
+                return redirect(url_for('cart.cart'))
+                
+            if not cart.items.count():
+                flash('السلة فارغة', 'warning')
+                return redirect(url_for('cart.cart'))
+
+            # حساب إجمالي المنتجات
+            products_total = sum(item.product.price * item.quantity for item in cart.items)
+            
+            return render_template('cart/checkout.html', 
+                                form=form, 
+                                cart_items=cart.items,
+                                products_total=products_total)
             
         if not form.validate():
             current_app.logger.warning(f"Form validation failed: {form.errors}")
