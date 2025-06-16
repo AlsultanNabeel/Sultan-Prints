@@ -210,32 +210,49 @@ def remove_from_cart(item_id):
     return redirect(url_for('cart.cart'))
 
 @cart_bp.route('/checkout', methods=['GET', 'POST'])
-@csrf.exempt
 def checkout():
     """إنشاء طلب جديد"""
     try:
         form = CheckoutForm()
-        if not form.validate_on_submit():
-            return jsonify({
-                'success': False,
-                'message': 'يرجى التحقق من صحة البيانات المدخلة',
-                'errors': form.errors
-            }), 400
+        
+        # تعبئة خيارات المحافظات في كل الحالات
+        governorates = Governorate.query.all()
+        form.governorate_id.choices = [(g.id, g.name) for g in governorates]
+        
+        if request.method == 'GET':
+            return render_template('cart/checkout.html', form=form)
+            
+        if not form.validate():
+            current_app.logger.warning(f"Form validation failed: {form.errors}")
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': False,
+                    'message': 'يرجى التحقق من صحة البيانات المدخلة',
+                    'errors': form.errors
+                }), 400
+            return render_template('cart/checkout.html', form=form), 400
 
         cart = get_or_create_cart()
-        if not cart or not cart.items.count():
-            return jsonify({
-                'success': False,
-                'message': 'السلة فارغة'
-            }), 400
+        if not cart:
+            current_app.logger.error("No cart found for session")
+            flash('حدث خطأ في الوصول إلى سلة التسوق', 'error')
+            return redirect(url_for('cart.cart'))
+            
+        if not cart.items.count():
+            flash('السلة فارغة', 'warning')
+            return redirect(url_for('cart.cart'))
 
         # حساب إجمالي الطلب
-        total_amount = sum(item.price * item.quantity for item in cart.items)
+        total_amount = sum(item.product.price * item.quantity for item in cart.items)
         delivery_fee = 0.0
-        if form.governorate_id.data:
-            governorate = Governorate.query.get(form.governorate_id.data)
-            if governorate:
-                delivery_fee = governorate.delivery_fee
+        
+        governorate = Governorate.query.get(form.governorate_id.data)
+        if governorate:
+            delivery_fee = governorate.delivery_fee
+        else:
+            current_app.logger.error(f"Governorate not found: {form.governorate_id.data}")
+            flash('حدث خطأ في تحديد المحافظة', 'error')
+            return render_template('cart/checkout.html', form=form), 400
 
         # تطبيق كود الخصم إذا وجد
         discount_amount = 0.0
@@ -245,6 +262,8 @@ def checkout():
             if promo_code and promo_code.is_valid():
                 discount_amount = session['promo_code']['discount_amount']
                 promo_code.uses_count += 1
+            else:
+                session.pop('promo_code', None)  # إزالة الكود غير الصالح من الجلسة
 
         # إنشاء الطلب
         order = Order(
@@ -264,13 +283,17 @@ def checkout():
 
         # إضافة عناصر الطلب
         for item in cart.items:
+            if not item.product:
+                current_app.logger.error(f"Product not found for cart item: {item.id}")
+                continue
+                
             order_item = OrderItem(
                 product_id=item.product_id,
                 product_name=item.product.name,
                 color=item.color,
                 size=item.size,
                 quantity=item.quantity,
-                price=item.price,
+                price=item.product.price,
                 custom_design_path=item.custom_design_path
             )
             order.order_items.append(order_item)
@@ -282,32 +305,41 @@ def checkout():
             notes='تم إنشاء الطلب'
         )
 
-        db.session.add(order)
-        db.session.add(order_status)
-        db.session.commit()
-
-        # إرسال بريد إلكتروني تأكيدي
-        send_order_confirmation_email(order)
-
-        # حذف السلة بعد إنشاء الطلب
-        db.session.delete(cart)
-        session.pop('promo_code', None)  # حذف كود الخصم من الجلسة
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'تم إنشاء الطلب بنجاح',
-            'order_id': order.id,
-            'order_reference': order.reference
-        })
+        try:
+            db.session.add(order)
+            db.session.add(order_status)
+            db.session.commit()
+            
+            # إرسال بريد إلكتروني تأكيدي
+            send_order_confirmation_email(order)
+            
+            # حذف السلة بعد إنشاء الطلب
+            db.session.delete(cart)
+            session.pop('promo_code', None)
+            db.session.commit()
+            
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True,
+                    'message': 'تم إنشاء الطلب بنجاح',
+                    'order_id': order.id,
+                    'order_reference': order.reference,
+                    'redirect_url': url_for('cart.order_confirmation', order_number=order.reference)
+                })
+                
+            flash('تم إنشاء الطلب بنجاح', 'success')
+            return redirect(url_for('cart.order_confirmation', order_number=order.reference))
+            
+        except Exception as db_error:
+            db.session.rollback()
+            current_app.logger.error(f"Database error in checkout: {str(db_error)}")
+            flash('حدث خطأ أثناء حفظ الطلب', 'error')
+            return render_template('cart/checkout.html', form=form), 500
 
     except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Error in checkout: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': 'حدث خطأ أثناء إنشاء الطلب'
-        }), 500
+        current_app.logger.error(f"Unexpected error in checkout: {str(e)}", exc_info=True)
+        flash('حدث خطأ غير متوقع', 'error')
+        return render_template('cart/checkout.html', form=form), 500
 
 @cart_bp.route('/order_confirmation/<order_number>')
 def order_confirmation(order_number):

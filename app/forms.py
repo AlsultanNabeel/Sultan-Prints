@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, FloatField, BooleanField, TextAreaField, IntegerField, SelectField, FileField, SelectMultipleField, RadioField, widgets, DateTimeField
+from wtforms import StringField, PasswordField, SubmitField, FloatField, BooleanField, TextAreaField, IntegerField, SelectField, FileField, SelectMultipleField, RadioField, widgets, DateTimeField, HiddenField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional, ValidationError
 from flask_wtf.file import FileAllowed
 from datetime import datetime
@@ -65,7 +65,7 @@ class CheckoutForm(FlaskForm):
     name = StringField('الاسم الكامل', validators=[DataRequired(), Length(min=2, max=100)])
     email = StringField('البريد الإلكتروني', validators=[DataRequired(), Email(message="الرجاء إدخال بريد إلكتروني صالح.")])
     phone = StringField('رقم الهاتف', validators=[DataRequired(), Length(min=6, max=20)])
-    governorate = SelectField('المحافظة', validators=[DataRequired(message="الرجاء اختيار المحافظة.")], render_kw={"class": "form-control"})
+    governorate_id = SelectField('المحافظة', validators=[DataRequired(message="الرجاء اختيار المحافظة.")], render_kw={"class": "form-control"})
     address = TextAreaField('العنوان بالتفصيل (الشارع، رقم المنزل، علامة مميزة)', validators=[DataRequired(), Length(min=10, max=500)])
     payment_method = RadioField('طريقة الدفع', choices=[
         ('cod', 'الدفع عند الاستلام'),
@@ -75,6 +75,7 @@ class CheckoutForm(FlaskForm):
         Optional(),
         FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'الصور فقط مسموح بها!')
     ])
+    csrf_token = HiddenField()
     submit = SubmitField('إتمام الطلب')
 
 class OrderStatusForm(FlaskForm):

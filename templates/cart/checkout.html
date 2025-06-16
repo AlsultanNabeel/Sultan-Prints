@@ -52,8 +52,30 @@
             <p class="text-muted">أنت على بعد خطوة واحدة من الحصول على منتجاتك الرائعة.</p>
         </div>
         
-        <form method="POST" action="{{ url_for('cart.checkout') }}" enctype="multipart/form-data" id="checkout-form">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form action="{{ url_for('cart.checkout') }}" method="post" enctype="multipart/form-data" id="checkout-form" novalidate>
             {{ form.csrf_token }}
+            {% if form.errors %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for field, errors in form.errors.items() %}
+                            {% for error in errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
             <div class="row g-5">
                 <!-- Shipping & Payment Column -->
                 <div class="col-lg-7">
@@ -65,29 +87,39 @@
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-12">
-                                    <label for="name" class="form-label">الاسم الكامل</label>
-                                    {{ form.name(class="form-control form-control-lg", id="name", placeholder="أدخل الاسم الكامل", required=true) }}
+                                    <label for="name">الاسم الكامل</label>
+                                    {{ form.name(class="form-control", id="name") }}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block"> {{ form.name.errors[0] }} </div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-12">
-                                    <label for="email" class="form-label">البريد الإلكتروني</label>
-                                    {{ form.email(class="form-control form-control-lg", id="email", placeholder="example@email.com", required=true, type="email") }}
+                                    <label for="email"> البريد الإلكتروني</label>
+                                    {{ form.email(class="form-control", id="email") }}
+                                    {% if form.email.errors %}
+                                        <div class="invalid-feedback d-block"> {{ form.email.errors[0] }} </div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-12">
-                                    <label for="phone" class="form-label">رقم الهاتف</label>
-                                    {{ form.phone(class="form-control form-control-lg", id="phone", placeholder="01XXXXXXXXX", required=true) }}
+                                    <label for="phone"> رقم الهاتف</label>
+                                    {{ form.phone(class="form-control", id="phone") }}
+                                    {% if form.phone.errors %}
+                                        <div class="invalid-feedback d-block"> {{ form.phone.errors[0] }} </div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-12">
-                                    <label for="governorate" class="form-label">المحافظة</label>
-                                    <select name="governorate" class="form-select form-select-lg" id="governorate" required>
-                                        <option value="">اختر المحافظة</option>
-                                        {% for value, label in form.governorate.choices %}
-                                            <option value="{{ value }}" {% if form.governorate.data == value %}selected{% endif %}>{{ label }}</option>
-                                        {% endfor %}
-                                    </select>
+                                    <label for="governorate_id"> المحافظة</label>
+                                    {{ form.governorate_id(class="form-control", id="governorate_id") }}
+                                    {% if form.governorate_id.errors %}
+                                        <div class="invalid-feedback d-block"> {{ form.governorate_id.errors[0] }} </div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-12">
-                                    <label for="address" class="form-label">العنوان بالتفصيل</label>
-                                    {{ form.address(class="form-control form-control-lg", id="address", rows="3", placeholder="المدينة، الشارع، رقم المبنى، علامة مميزة...", required=true) }}
+                                    <label for="address">العنوان بالتفصيل (الشارع، رقم المنزل، علامة مميزة)</label>
+                                    {{ form.address(class="form-control", id="address") }}
+                                    {% if form.address.errors %}
+                                        <div class="invalid-feedback d-block"> {{ form.address.errors[0] }} </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -194,7 +226,10 @@
                         </div>
 
                         <div class="card-footer bg-white p-3">
-                             {{ form.submit(class="btn btn-primary btn-lg w-100", value="تأكيد الطلب الآن") }}
+                            <button type="submit" class="btn btn-primary btn-lg w-100" id="submit-order">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                تأكيد الطلب الآن
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -250,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // تحديث رسوم الشحن والمجموع الكلي عند تغيير المحافظة
-    const governorateSelect = document.getElementById('governorate');
+    const governorateSelect = document.getElementById('governorate_id');
     const shippingCostElem = document.getElementById('shipping-cost');
     const finalTotalElem = document.getElementById('final-total');
     const productsTotal = parseFloat("{{ products_total|round(2) }}");
@@ -369,7 +404,7 @@ $(document).ready(function() {
     }
 
     // تحديث رسوم التوصيل عند تغيير المحافظة
-    $('#governorate').change(function() {
+    $('#governorate_id').change(function() {
         const governorateId = $(this).val();
         if (governorateId) {
             $.get("{{ url_for('cart.get_delivery_fee') }}", { governorate_id: governorateId })

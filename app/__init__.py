@@ -7,9 +7,19 @@ from flask_mail import Mail
 from markupsafe import escape, Markup
 from datetime import datetime
 import uuid
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect
+from config import config
+from app.utils.security import setup_security_monitoring
+from app.utils.backup import DatabaseBackup
+import logging
+from logging.handlers import RotatingFileHandler
 
 migrate = Migrate()
 mail = Mail()
+login_manager = LoginManager()
+csrf = CSRFProtect()
 
 def nl2br(value):
     """Converts newlines in a string to HTML <br> tags."""
@@ -18,9 +28,9 @@ def nl2br(value):
     escaped_value = escape(value)
     return Markup(escaped_value.replace('\\n', '<br>\\n'))
 
-def create_app(config_class=Config):
+def create_app(config_name='default'):
     app = Flask(__name__, static_folder='../static')
-    app.config.from_object(config_class)
+    app.config.from_object(config[config_name])
 
     # إعدادات أمان إضافية للتطبيق
     @app.after_request
@@ -41,26 +51,28 @@ def create_app(config_class=Config):
     # Initialize Flask extensions
     db.init_app(app)
     migrate.init_app(app, db)
-
-    # --- BEGIN MODIFICATION ---
-    # محاولة تطبيق تحديثات قاعدة البيانات عند بدء التشغيل
-    # هذا مهم للمنصات مثل DigitalOcean App Platform
-    # حيث قد لا يتم تشغيل 'flask db upgrade' بشكل منفصل.
-    # نعلق هذا الجزء مؤقتاً لحل مشكلة 20240608_remove
-    # with app.app_context():
-    #     print("INFO: Attempting to apply database migrations...")
-    #     try:
-    #         upgrade() # هذا هو أمر flask_migrate.upgrade
-    #         print("INFO: Database migrations check/apply completed.")
-    #     except Exception as e:
-    #         # تسجيل الخطأ، ولكن السماح للتطبيق بالاستمرار في البدء.
-    #         # قد تمنع أخطاء الترحيل الحرجة التطبيق من العمل بشكل صحيح.
-    #         print(f"WARNING: Error applying database migrations: {e}")
-    #         print("WARNING: The application will continue starting, but some features might not work if migrations failed.")
-    # --- END MODIFICATION ---
-
-    csrf.init_app(app)
+    login_manager.init_app(app)
     mail.init_app(app)
+    csrf.init_app(app)
+
+    # إعداد تسجيل الأخطاء
+    if not app.debug and not app.testing:
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        file_handler = RotatingFileHandler('logs/sultan_prints.log',
+                                         maxBytes=10240,
+                                         backupCount=10)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]'
+        ))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+        app.logger.setLevel(logging.INFO)
+        app.logger.info('Sultan Prints startup')
+    
+    # تفعيل نظام المراقبة الأمنية
+    setup_security_monitoring(app)
 
     # Register custom Jinja filter
     app.jinja_env.filters['nl2br'] = nl2br
@@ -115,5 +127,11 @@ def create_app(config_class=Config):
 
     from .routes.cart import cart_bp as cart_blueprint
     app.register_blueprint(cart_blueprint)
+
+    # تفعيل النسخ الاحتياطي التلقائي
+    if app.config['ENABLE_AUTO_BACKUP']:
+        backup = DatabaseBackup()
+        backup.schedule_backups()
+        app.logger.info('تم تفعيل النسخ الاحتياطي التلقائي')
 
     return app
