@@ -1,0 +1,114 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{{ title }}</h1>
+        <a href="{{ url_for('admin.promocodes') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة إلى قائمة أكواد الخصم
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="POST" class="needs-validation" novalidate>
+                {{ form.hidden_tag() }}
+                
+                <div class="form-group">
+                    {{ form.code.label(class="form-label") }}
+                    {{ form.code(class="form-control" + (" is-invalid" if form.code.errors else ""), 
+                               placeholder="أدخل كود الخصم") }}
+                    {% if form.code.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.code.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.discount_percentage.label(class="form-label") }}
+                    {{ form.discount_percentage(class="form-control" + (" is-invalid" if form.discount_percentage.errors else ""), 
+                                             placeholder="أدخل نسبة الخصم") }}
+                    {% if form.discount_percentage.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.discount_percentage.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.max_uses.label(class="form-label") }}
+                    {{ form.max_uses(class="form-control" + (" is-invalid" if form.max_uses.errors else ""), 
+                                   placeholder="اتركه فارغاً للاستخدام غير المحدود") }}
+                    {% if form.max_uses.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.max_uses.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.expiration_date.label(class="form-label") }}
+                    {{ form.expiration_date(class="form-control datetimepicker" + (" is-invalid" if form.expiration_date.errors else ""), 
+                                          placeholder="اختر تاريخ انتهاء الصلاحية") }}
+                    {% if form.expiration_date.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.expiration_date.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <div class="custom-control custom-switch">
+                        {{ form.is_active(class="custom-control-input") }}
+                        {{ form.is_active.label(class="custom-control-label") }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> حفظ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('.datetimepicker').datetimepicker({
+        format: 'YYYY-MM-DD HH:mm:ss',
+        locale: 'ar',
+        sideBySide: true,
+        icons: {
+            time: 'fas fa-clock',
+            date: 'fas fa-calendar',
+            up: 'fas fa-arrow-up',
+            down: 'fas fa-arrow-down',
+            previous: 'fas fa-chevron-right',
+            next: 'fas fa-chevron-left',
+            today: 'fas fa-calendar-check',
+            clear: 'fas fa-trash',
+            close: 'fas fa-times'
+        }
+    });
+});
+</script>
+{% endblock %} 

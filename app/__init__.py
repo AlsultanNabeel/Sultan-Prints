@@ -1,5 +1,4 @@
 import os
-import pymysql
 from flask import Flask, session, request, redirect
 from config import Config
 from .extensions import db, csrf
@@ -8,8 +7,6 @@ from flask_mail import Mail
 from markupsafe import escape, Markup
 from datetime import datetime
 import uuid
-
-pymysql.install_as_MySQLdb()
 
 migrate = Migrate()
 mail = Mail()
@@ -26,7 +23,6 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     # إعدادات أمان إضافية للتطبيق
-    # محتوى الأمان
     @app.after_request
     def add_security_headers(response):
         # إضافة رؤوس الأمان التي تم تكوينها
@@ -85,6 +81,11 @@ def create_app(config_class=Config):
         if request.host == 'sultanprints.studio':
             new_url = request.url.replace('sultanprints.studio', 'www.sultanprints.studio', 1)
             return redirect(new_url, code=301)
+        
+        # إجبار HTTPS في حالة دخل بدون SSL (إذا ما اشتغل من DigitalOcean)
+        if not request.is_secure:
+            url = request.url.replace("http://", "https://", 1)
+            return redirect(url, code=301)
         
         # توليد معرّف جلسة جديد عند عدم وجوده
         if 'user_id' not in session:

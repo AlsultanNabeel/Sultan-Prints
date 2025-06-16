@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, FloatField, BooleanField, TextAreaField, IntegerField, SelectField, FileField, SelectMultipleField, RadioField, widgets
+from wtforms import StringField, PasswordField, SubmitField, FloatField, BooleanField, TextAreaField, IntegerField, SelectField, FileField, SelectMultipleField, RadioField, widgets, DateTimeField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional, ValidationError
 from flask_wtf.file import FileAllowed
+from datetime import datetime
 
 def AtLeastOneSelected(form, field):
     if not field.data or len(field.data) == 0:
@@ -154,3 +155,34 @@ class FAQForm(FlaskForm):
     is_active = BooleanField('عرض هذا السؤال في الموقع', default=True, render_kw={"class": "form-check-input"})
     display_order = IntegerField('ترتيب العرض', default=0, render_kw={"class": "form-control"}, description="الأرقام الأقل تظهر أولاً.")
     submit = SubmitField('حفظ', render_kw={"class": "btn btn-primary"})
+
+class PromoCodeForm(FlaskForm):
+    """نموذج إدارة أكواد الخصم"""
+    code = StringField('كود الخصم', validators=[
+        DataRequired(message='يرجى إدخال كود الخصم'),
+        Length(min=3, max=50, message='يجب أن يكون طول الكود بين 3 و 50 حرفاً')
+    ])
+    discount_percentage = FloatField('نسبة الخصم (%)', validators=[
+        DataRequired(message='يرجى إدخال نسبة الخصم'),
+        NumberRange(min=0, max=100, message='يجب أن تكون نسبة الخصم بين 0 و 100')
+    ])
+    max_uses = IntegerField('الحد الأقصى للاستخدام', validators=[
+        Optional(),
+        NumberRange(min=1, message='يجب أن يكون الحد الأقصى للاستخدام أكبر من 0')
+    ])
+    expiration_date = DateTimeField('تاريخ انتهاء الصلاحية', validators=[
+        DataRequired(message='يرجى تحديد تاريخ انتهاء الصلاحية')
+    ], format='%Y-%m-%d %H:%M:%S')
+    is_active = BooleanField('نشط')
+
+    def validate_code(self, code):
+        """التحقق من عدم تكرار الكود"""
+        from app.models import PromoCode
+        promo_code = PromoCode.query.filter_by(code=code.data).first()
+        if promo_code and promo_code.id != getattr(self, '_id', None):
+            raise ValidationError('هذا الكود مستخدم بالفعل')
+
+    def validate_expiration_date(self, expiration_date):
+        """التحقق من أن تاريخ انتهاء الصلاحية في المستقبل"""
+        if expiration_date.data <= datetime.utcnow():
+            raise ValidationError('يجب أن يكون تاريخ انتهاء الصلاحية في المستقبل')

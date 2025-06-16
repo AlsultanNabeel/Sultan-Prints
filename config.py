@@ -30,18 +30,26 @@ class Config:
             raise ValueError("SECRET_KEY environment variable must be set in production")
     
     # Database configuration
-    # Use Render's DATABASE_URL in production, otherwise fall back to local MySQL for development
+    # استخدام PostgreSQL في جميع البيئات
     db_url = os.environ.get('DATABASE_URL')
-    if db_url and db_url.startswith('postgres://'):
-        # On Render, DATABASE_URL is for PostgreSQL, but SQLAlchemy needs 'postgresql://'
+    if not db_url:
+        if os.environ.get('FLASK_ENV') != 'production':
+            # في بيئة التطوير، استخدم PostgreSQL محلي
+            db_url = 'postgresql://postgres:postgres@localhost:5432/sultan_prints'
+        else:
+            raise ValueError("DATABASE_URL environment variable must be set in production")
+    
+    # تحويل رابط PostgreSQL من Render إذا كان موجوداً
+    if db_url.startswith('postgres://'):
         db_url = db_url.replace('postgres://', 'postgresql://', 1)
     
-    # لا تكشف بيانات اعتماد قاعدة البيانات في التعليقات البرمجية
-    if not db_url and os.environ.get('FLASK_ENV') != 'production':
-        SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@localhost/sultan_prints?charset=utf8mb4'
-    else:
-        SQLALCHEMY_DATABASE_URI = db_url
+    SQLALCHEMY_DATABASE_URI = db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,
+        'pool_recycle': 3600,
+        'pool_pre_ping': True
+    }
     
     # Upload Settings
     UPLOAD_FOLDER = 'static/uploads'

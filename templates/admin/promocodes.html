@@ -1,0 +1,86 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">إدارة أكواد الخصم</h1>
+        <a href="{{ url_for('admin.add_promocode') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> إضافة كود خصم جديد
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="promocodesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>الكود</th>
+                            <th>نسبة الخصم</th>
+                            <th>الحد الأقصى للاستخدام</th>
+                            <th>عدد مرات الاستخدام</th>
+                            <th>تاريخ انتهاء الصلاحية</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الإنشاء</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for promo in promocodes %}
+                        <tr>
+                            <td>{{ promo.code }}</td>
+                            <td>{{ promo.discount_percentage }}%</td>
+                            <td>{{ promo.max_uses or 'غير محدود' }}</td>
+                            <td>{{ promo.uses_count }}</td>
+                            <td>{{ promo.expiration_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <span class="badge badge-{{ 'success' if promo.is_active else 'danger' }}">
+                                    {{ 'نشط' if promo.is_active else 'غير نشط' }}
+                                </span>
+                            </td>
+                            <td>{{ promo.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin.edit_promocode', id=promo.id) }}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form action="{{ url_for('admin.toggle_promocode', id=promo.id) }}" 
+                                          method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-{{ 'warning' if promo.is_active else 'success' }}"
+                                                onclick="return confirm('هل أنت متأكد من {{ 'تعطيل' if promo.is_active else 'تفعيل' }} هذا الكود؟')">
+                                            <i class="fas fa-{{ 'ban' if promo.is_active else 'check' }}"></i>
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('admin.delete_promocode', id=promo.id) }}" 
+                                          method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                onclick="return confirm('هل أنت متأكد من حذف هذا الكود؟')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#promocodesTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Arabic.json"
+        },
+        "order": [[6, "desc"]], // ترتيب حسب تاريخ الإنشاء تنازلياً
+        "pageLength": 25
+    });
+});
+</script>
+{% endblock %} 

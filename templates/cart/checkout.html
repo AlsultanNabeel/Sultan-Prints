@@ -141,36 +141,56 @@
                             <h4 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>ملخص الطلب</h4>
                         </div>
                         <div class="card-body">
-                            <!-- Items -->
-                            <ul class="list-group list-group-flush">
-                                {% for item in cart_items %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <div>
-                                        <h6 class="my-0">{{ item.product.name }}</h6>
-                                        <small class="text-muted">الكمية: {{ item.quantity }}</small>
+                            <!-- حقل كود الخصم -->
+                            <div class="form-group mb-4">
+                                <div class="input-group">
+                                    <input type="text" id="promoCode" class="form-control" placeholder="أدخل كود الخصم">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary" type="button" id="applyPromoCode">
+                                            <i class="fas fa-tag"></i> تطبيق
+                                        </button>
                                     </div>
-                                    <span class="text-muted">{{ (item.product.price * item.quantity)|round(2) }} جنيه</span>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                            
-                            <hr class="my-3">
+                                </div>
+                                <small id="promoCodeMessage" class="form-text"></small>
+                            </div>
 
-                            <!-- Totals -->
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span>إجمالي المنتجات</span>
-                                    <strong>{{ products_total|round(2) }} جنيه</strong>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span>رسوم الشحن</span>
-                                    <strong id="shipping-cost">--</strong>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 h5">
-                                    <strong>المجموع الكلي</strong>
-                                    <strong class="text-primary" id="final-total">--</strong>
-                                </li>
-                            </ul>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <tbody>
+                                        {% for item in cart_items %}
+                                        <tr>
+                                            <td>
+                                                <img src="{{ url_for('static', filename='uploads/' + item.product.image) }}" 
+                                                     alt="{{ item.product.name }}" class="img-thumbnail" style="width: 50px;">
+                                                {{ item.product.name }}
+                                                {% if item.color %} - {{ item.color }}{% endif %}
+                                                {% if item.size %} - {{ item.size }}{% endif %}
+                                            </td>
+                                            <td class="text-left">{{ item.quantity }}</td>
+                                            <td class="text-left">{{ (item.product.price * item.quantity)|round(2) }} جنيه</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="2" class="text-right"><strong>إجمالي المنتجات:</strong></td>
+                                            <td class="text-left" id="subtotal">{{ products_total|round(2) }} جنيه</td>
+                                        </tr>
+                                        <tr id="discountRow" style="display: none;">
+                                            <td colspan="2" class="text-right"><strong>الخصم:</strong></td>
+                                            <td class="text-left" id="discountAmount">0.00 جنيه</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2" class="text-right"><strong>رسوم الشحن:</strong></td>
+                                            <td class="text-left" id="shipping-cost">--</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2" class="text-right"><strong>الإجمالي النهائي:</strong></td>
+                                            <td class="text-left" id="final-total">--</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
                         </div>
 
                         <div class="card-footer bg-white p-3">
@@ -258,4 +278,118 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+{% block extra_js %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    let promoCodeApplied = false;
+    const csrfToken = "{{ csrf_token() }}";
+
+    // تطبيق كود الخصم
+    $('#applyPromoCode').click(function() {
+        const code = $('#promoCode').val().trim();
+        if (!code) {
+            showPromoMessage('يرجى إدخال كود الخصم', 'danger');
+            return;
+        }
+
+        $.ajax({
+            url: "{{ url_for('cart.apply_promocode') }}",
+            method: 'POST',
+            data: {
+                code: code,
+                csrf_token: csrfToken
+            },
+            success: function(response) {
+                if (response.success) {
+                    showPromoMessage(response.message, 'success');
+                    updateOrderSummary(response.data);
+                    promoCodeApplied = true;
+                    $('#promoCode').prop('disabled', true);
+                    $('#applyPromoCode').prop('disabled', true);
+                    // إضافة زر لإزالة الكود
+                    if (!$('#removePromoCode').length) {
+                        $('#applyPromoCode').after(
+                            '<button class="btn btn-outline-danger" type="button" id="removePromoCode">' +
+                            '<i class="fas fa-times"></i> إزالة الكود</button>'
+                        );
+                    }
+                } else {
+                    showPromoMessage(response.message, 'danger');
+                }
+            },
+            error: function() {
+                showPromoMessage('حدث خطأ أثناء تطبيق الكود', 'danger');
+            }
+        });
+    });
+
+    // إزالة كود الخصم
+    $(document).on('click', '#removePromoCode', function() {
+        $.ajax({
+            url: "{{ url_for('cart.remove_promocode') }}",
+            method: 'POST',
+            data: {
+                csrf_token: csrfToken
+            },
+            success: function(response) {
+                if (response.success) {
+                    showPromoMessage(response.message, 'success');
+                    updateOrderSummary(response.data);
+                    promoCodeApplied = false;
+                    $('#promoCode').prop('disabled', false).val('');
+                    $('#applyPromoCode').prop('disabled', false);
+                    $('#removePromoCode').remove();
+                }
+            },
+            error: function() {
+                showPromoMessage('حدث خطأ أثناء إزالة الكود', 'danger');
+            }
+        });
+    });
+
+    function showPromoMessage(message, type) {
+        $('#promoCodeMessage')
+            .removeClass('text-danger text-success')
+            .addClass('text-' + type)
+            .text(message);
+    }
+
+    function updateOrderSummary(data) {
+        $('#subtotal').text(data.original_amount.toFixed(2) + ' جنيه');
+        if (data.discount_amount > 0) {
+            $('#discountRow').show();
+            $('#discountAmount').text('-' + data.discount_amount.toFixed(2) + ' جنيه');
+        } else {
+            $('#discountRow').hide();
+            $('#discountAmount').text('0.00 جنيه');
+        }
+        $('#final-total').text(data.final_amount.toFixed(2) + ' جنيه');
+    }
+
+    // تحديث رسوم التوصيل عند تغيير المحافظة
+    $('#governorate').change(function() {
+        const governorateId = $(this).val();
+        if (governorateId) {
+            $.get("{{ url_for('cart.get_delivery_fee') }}", { governorate_id: governorateId })
+                .done(function(response) {
+                    if (response.success) {
+                        const deliveryFee = parseFloat(response.delivery_fee);
+                        $('#shipping-cost').text(deliveryFee.toFixed(2) + ' جنيه');
+                        // تحديث الإجمالي النهائي
+                        const subtotal = parseFloat($('#subtotal').text());
+                        const discount = promoCodeApplied ? 
+                            parseFloat($('#discountAmount').text().replace('-', '').replace(' جنيه', '')) : 0;
+                        const total = subtotal - discount + deliveryFee;
+                        $('#final-total').text(total.toFixed(2) + ' جنيه');
+                    }
+                });
+        } else {
+            $('#shipping-cost').text('0.00 جنيه');
+        }
+    });
+});
+</script>
+{% endblock %}
 {% endblock %}

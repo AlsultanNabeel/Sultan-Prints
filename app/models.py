@@ -84,11 +84,14 @@ class Order(db.Model):
     customer_email = db.Column(db.String(120), nullable=False)
     customer_phone = db.Column(db.String(32), nullable=False)
     address = db.Column(db.Text, nullable=False) # Detailed address (street, building, etc.)
-    governorate_id = db.Column(db.Integer, db.ForeignKey('governorates.id'), nullable=True) # Changed from False to True
+    governorate_id = db.Column(db.Integer, db.ForeignKey('governorates.id'), nullable=True)
     delivery_fee = db.Column(db.Float, nullable=False, default=0.0)
     payment_method = db.Column(db.String(32), nullable=False)
     vodafone_receipt = db.Column(db.String(255), nullable=True)
     total_amount = db.Column(db.Float, nullable=False, default=0)
+    discount_amount = db.Column(db.Float, nullable=False, default=0)  # مبلغ الخصم
+    final_amount = db.Column(db.Float, nullable=False, default=0)  # المبلغ النهائي بعد الخصم
+    promo_code_id = db.Column(db.Integer, db.ForeignKey('promocodes.id'), nullable=True)
     status = db.Column(db.String(32), default='pending')
     archived = db.Column(db.Boolean, default=False, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -98,6 +101,11 @@ class Order(db.Model):
 
     def __repr__(self):
         return f'<Order {self.reference}>'
+
+    def calculate_final_amount(self):
+        """حساب المبلغ النهائي بعد تطبيق الخصم"""
+        self.final_amount = self.total_amount - self.discount_amount
+        return self.final_amount
 
 class OrderItem(db.Model):
     """عنصر في الطلب"""
@@ -274,6 +282,40 @@ class FAQ(db.Model):
 
     def __repr__(self):
         return f'<FAQ {self.id}: {self.question[:50]}>'
+
+class PromoCode(db.Model):
+    """نموذج أكواد الخصم"""
+    __tablename__ = 'promocodes'
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    discount_percentage = db.Column(db.Float, nullable=False)
+    max_uses = db.Column(db.Integer, nullable=True)
+    uses_count = db.Column(db.Integer, default=0)
+    expiration_date = db.Column(db.DateTime, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    orders = db.relationship('Order', backref='promo_code', lazy='dynamic')
+
+    def __repr__(self):
+        return f'<PromoCode {self.code}>'
+
+    def is_valid(self):
+        """التحقق من صلاحية الكود"""
+        if not self.is_active:
+            return False
+        if self.expiration_date < datetime.utcnow():
+            return False
+        if self.max_uses and self.uses_count >= self.max_uses:
+            return False
+        return True
+
+    def apply_discount(self, total_amount):
+        """تطبيق الخصم على المبلغ الإجمالي"""
+        if not self.is_valid():
+            return total_amount
+        discount = total_amount * (self.discount_percentage / 100)
+        return total_amount - discount
 
 # Define the association table for the many-to-many relationship
 # between Order and Product

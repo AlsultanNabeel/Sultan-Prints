@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request, jsonify
-from app.models import Product, Order, OrderItem, Cart, CartItem, Design, Governorate # Added Cart, CartItem, Design, Governorate
+from app.models import Product, Order, OrderItem, Cart, CartItem, Design, Governorate, PromoCode # Added PromoCode
 from app.extensions import db, csrf # For db.session and csrf
 from app.forms import CheckoutForm # For CheckoutForm
 import uuid, os, json
@@ -209,112 +209,105 @@ def remove_from_cart(item_id):
     flash('تم حذف المنتج من سلة التسوق', 'success')
     return redirect(url_for('cart.cart'))
 
-@cart_bp.route('/checkout', methods=['GET', 'POST'])
+@cart_bp.route('/checkout', methods=['POST'])
+@csrf.exempt
 def checkout():
-    cart = Cart.query.filter_by(session_id=session.get('cart_id')).first()
-    if not cart or not cart.items.all():
-        flash('سلة التسوق فارغة.', 'info')
-        return redirect(url_for('main.index'))
+    """إنشاء طلب جديد"""
+    try:
+        form = CheckoutForm()
+        if not form.validate_on_submit():
+            return jsonify({
+                'success': False,
+                'message': 'يرجى التحقق من صحة البيانات المدخلة',
+                'errors': form.errors
+            }), 400
 
-    form = CheckoutForm()
-    governorates = Governorate.query.order_by(Governorate.name.asc()).all()
-    # إضافة خيار افتراضي واحد فقط للمحافظة
-    form.governorate.choices = [('', 'اختر المحافظة')] + [(g.id, f"{g.name} (+{g.delivery_fee:.2f} ج.م)") for g in governorates]
+        cart = get_or_create_cart()
+        if not cart or not cart.items.count():
+            return jsonify({
+                'success': False,
+                'message': 'السلة فارغة'
+            }), 400
 
-    products_total = sum(item.product.price * item.quantity for item in cart.items if item.product)
-    # Delivery fee will be determined after governorate selection
-    delivery_fee = 0.0 
-    final_total = products_total # Initially, final_total is just products_total
+        # حساب إجمالي الطلب
+        total_amount = sum(item.price * item.quantity for item in cart.items)
+        delivery_fee = 0.0
+        if form.governorate_id.data:
+            governorate = Governorate.query.get(form.governorate_id.data)
+            if governorate:
+                delivery_fee = governorate.delivery_fee
 
-    if form.validate_on_submit():
-        selected_governorate_id = form.governorate.data
-        selected_governorate = Governorate.query.get(selected_governorate_id)
-        if not selected_governorate:
-            flash('الرجاء اختيار محافظة صحيحة.', 'danger')
-            return render_template('cart/checkout.html', cart=cart, form=form, products_total=products_total, delivery_fee=0, final_total=products_total)
+        # تطبيق كود الخصم إذا وجد
+        discount_amount = 0.0
+        promo_code = None
+        if 'promo_code' in session:
+            promo_code = PromoCode.query.get(session['promo_code']['id'])
+            if promo_code and promo_code.is_valid():
+                discount_amount = session['promo_code']['discount_amount']
+                promo_code.uses_count += 1
 
-        delivery_fee = selected_governorate.delivery_fee
-        final_total = products_total + delivery_fee
+        # إنشاء الطلب
+        order = Order(
+            customer_name=form.name.data,
+            customer_email=form.email.data,
+            customer_phone=form.phone.data,
+            address=form.address.data,
+            governorate_id=form.governorate_id.data,
+            delivery_fee=delivery_fee,
+            payment_method=form.payment_method.data,
+            total_amount=total_amount,
+            discount_amount=discount_amount,
+            final_amount=total_amount + delivery_fee - discount_amount,
+            promo_code_id=promo_code.id if promo_code else None,
+            user_id=current_user.id if current_user.is_authenticated else None
+        )
 
-        # Order creation logic without discount
-        order_data = {
-            'customer_name': form.name.data,
-            'customer_email': form.email.data,
-            'customer_phone': form.phone.data,
-            'address': form.address.data,
-            'governorate_id': selected_governorate_id,
-            'delivery_fee': delivery_fee,
-            'payment_method': form.payment_method.data,
-            'total_amount': final_total, # Save the final total including delivery
-        }
-        
-        # إنشاء الطلب بدون archived لتجنب مشاكل قاعدة البيانات
-        order = Order(**order_data)
-        
-        db.session.add(order)
-        db.session.flush()  # حتى يتوفر order.id
-
-        # تحويل عناصر السلة إلى عناصر الطلب
-        for cart_item in cart.items:
+        # إضافة عناصر الطلب
+        for item in cart.items:
             order_item = OrderItem(
-                order_id=order.id,
-                product_id=cart_item.product_id,
-                product_name=cart_item.product.name if cart_item.product else '',
-                color=cart_item.color or 'غير محدد',
-                size=cart_item.size or 'غير محدد',
-                quantity=cart_item.quantity,
-                price=cart_item.product.price if cart_item.product else 0
+                product_id=item.product_id,
+                product_name=item.product.name,
+                color=item.color,
+                size=item.size,
+                quantity=item.quantity,
+                price=item.price,
+                custom_design_path=item.custom_design_path
             )
-            db.session.add(order_item)
+            order.order_items.append(order_item)
 
+        # إضافة حالة الطلب الأولية
+        order_status = OrderStatus(
+            order=order,
+            status='pending',
+            notes='تم إنشاء الطلب'
+        )
+
+        db.session.add(order)
+        db.session.add(order_status)
         db.session.commit()
 
-        # Clear cart from session
-        session.pop('cart_id', None)
-        session.pop('cart_count', None)
+        # إرسال بريد إلكتروني تأكيدي
+        send_order_confirmation_email(order)
 
-        # Send emails after successful commit
-        try:
-            # Send order confirmation email to the customer
-            subject = f"تأكيد طلبك من Sultan Prints (رقم الطلب: #{order.reference})"
-            email_body = render_template(
-                'emails/order_confirmation_customer.html', 
-                order=order
-            )
-            send_email(
-                to_email=order.customer_email,
-                subject=subject,
-                body_html=email_body
-            )
-            current_app.logger.info(f"Order confirmation email sent for order {order.reference} to {order.customer_email}")
+        # حذف السلة بعد إنشاء الطلب
+        db.session.delete(cart)
+        session.pop('promo_code', None)  # حذف كود الخصم من الجلسة
+        db.session.commit()
 
-            # Send notification email to admin
-            admin_email = current_app.config.get('ADMIN_EMAIL')
-            if admin_email:
-                admin_subject = f"طلب جديد على المتجر! رقم الطلب: #{order.reference}"
-                admin_body = render_template(
-                    'emails/order_notification_admin.html',
-                    order=order
-                )
-                send_email(
-                    to_email=admin_email,
-                    subject=admin_subject,
-                    body_html=admin_body
-                )
-                current_app.logger.info(f"Admin notification sent for order {order.reference}")
-            else:
-                current_app.logger.warning("ADMIN_EMAIL not set, skipping admin notification.")
+        return jsonify({
+            'success': True,
+            'message': 'تم إنشاء الطلب بنجاح',
+            'order_id': order.id,
+            'order_reference': order.reference
+        })
 
-        except Exception as e:
-            current_app.logger.error(f"Failed to send email for order {order.reference}: {e}")
-        
-        flash('تم استلام طلبك بنجاح!', 'success')
-        return redirect(url_for('cart.order_confirmation', order_number=order.reference))
-
-    # For GET request, or if form validation fails
-    # Delivery fee is 0 initially, will be updated by JS
-    # Final total for display is initially just products_total
-    return render_template('cart/checkout.html', cart=cart, form=form, products_total=products_total, delivery_fee=0, final_total=products_total)
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error in checkout: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'حدث خطأ أثناء إنشاء الطلب'
+        }), 500
 
 @cart_bp.route('/order_confirmation/<order_number>')
 def order_confirmation(order_number):
@@ -392,3 +385,78 @@ def update_quantity():
             'success': False,
             'message': 'حدث خطأ أثناء تحديث السلة'
         }), 500
+
+@cart_bp.route('/apply-promocode', methods=['POST'])
+def apply_promocode():
+    """تطبيق كود الخصم على السلة"""
+    code = request.form.get('code', '').strip().upper()
+    if not code:
+        return jsonify({
+            'success': False,
+            'message': 'يرجى إدخال كود الخصم'
+        })
+
+    promo_code = PromoCode.query.filter_by(code=code).first()
+    if not promo_code:
+        return jsonify({
+            'success': False,
+            'message': 'كود الخصم غير صحيح'
+        })
+
+    if not promo_code.is_valid():
+        if not promo_code.is_active:
+            message = 'كود الخصم غير نشط'
+        elif promo_code.expiration_date < datetime.utcnow():
+            message = 'كود الخصم منتهي الصلاحية'
+        elif promo_code.max_uses and promo_code.uses_count >= promo_code.max_uses:
+            message = 'تم استنفاد الحد الأقصى لاستخدام هذا الكود'
+        else:
+            message = 'كود الخصم غير صالح'
+        
+        return jsonify({
+            'success': False,
+            'message': message
+        })
+
+    # حساب إجمالي السلة
+    cart = get_or_create_cart()
+    total_amount = sum(item.price * item.quantity for item in cart.items)
+    
+    # تطبيق الخصم
+    discount_amount = total_amount * (promo_code.discount_percentage / 100)
+    final_amount = total_amount - discount_amount
+
+    # تخزين معلومات الكود في الجلسة
+    session['promo_code'] = {
+        'id': promo_code.id,
+        'code': promo_code.code,
+        'discount_percentage': promo_code.discount_percentage,
+        'discount_amount': discount_amount
+    }
+
+    return jsonify({
+        'success': True,
+        'message': 'تم تطبيق كود الخصم بنجاح',
+        'data': {
+            'original_amount': total_amount,
+            'discount_amount': discount_amount,
+            'final_amount': final_amount,
+            'discount_percentage': promo_code.discount_percentage
+        }
+    })
+
+@cart_bp.route('/remove-promocode', methods=['POST'])
+def remove_promocode():
+    """إزالة كود الخصم من السلة"""
+    session.pop('promo_code', None)
+    cart = get_or_create_cart()
+    total_amount = sum(item.price * item.quantity for item in cart.items)
+    
+    return jsonify({
+        'success': True,
+        'message': 'تم إزالة كود الخصم',
+        'data': {
+            'original_amount': total_amount,
+            'final_amount': total_amount
+        }
+    })
