@@ -217,7 +217,7 @@ def checkout():
         cart = get_or_create_cart()
         if not cart or not cart.items:
             flash('سلة المشتريات فارغة', 'warning')
-            return redirect(url_for('cart.view_cart'))
+            return redirect(url_for('cart.cart'))
             
         form = CheckoutForm()
         if form.validate_on_submit():
@@ -282,7 +282,7 @@ def checkout():
     except Exception as e:
         current_app.logger.error(f"Unexpected error in checkout: {str(e)}", exc_info=True)
         flash('حدث خطأ أثناء تحميل صفحة الدفع', 'error')
-        return redirect(url_for('cart.view_cart'))
+        return redirect(url_for('cart.cart'))
 
 @cart_bp.route('/order_confirmation/<order_number>')
 def order_confirmation(order_number):
@@ -293,8 +293,15 @@ def order_confirmation(order_number):
 def get_delivery_fee(governorate_id):
     governorate = Governorate.query.get(governorate_id)
     if governorate:
-        return jsonify({'delivery_fee': governorate.delivery_fee, 'name': governorate.name})
-    return jsonify({'error': 'Governorate not found'}), 404
+        return jsonify({
+            'success': True,
+            'delivery_fee': governorate.delivery_fee, 
+            'name': governorate.name
+        })
+    return jsonify({
+        'success': False,
+        'error': 'Governorate not found'
+    }), 404
 
 @cart_bp.route('/update_quantity', methods=['POST'])
 def update_quantity():

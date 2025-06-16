@@ -407,7 +407,7 @@ $(document).ready(function() {
     $('#governorate_id').change(function() {
         const governorateId = $(this).val();
         if (governorateId) {
-            $.get("{{ url_for('cart.get_delivery_fee') }}", { governorate_id: governorateId })
+            $.get(`/cart/get_delivery_fee/${governorateId}`)
                 .done(function(response) {
                     if (response.success) {
                         const deliveryFee = parseFloat(response.delivery_fee);
