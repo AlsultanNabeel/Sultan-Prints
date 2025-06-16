@@ -135,7 +135,7 @@
             <ul class="pagination justify-content-center">
                 {% if products.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.products', page=products.prev_num, **request.args) }}">&laquo; السابق</a>
+                        <a class="page-link" href="{{ url_for('main.products', page=products.prev_num, category=request.args.get('category', ''), search=request.args.get('search', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), sort_by=request.args.get('sort_by', '')) }}">&laquo; السابق</a>
                     </li>
                 {% else %}
                     <li class="page-item disabled">
@@ -146,7 +146,7 @@
                 {% for page_num in products.iter_pages() %}
                     {% if page_num %}
                         <li class="page-item {% if products.page == page_num %}active{% endif %}">
-                            <a class="page-link" href="{{ url_for('main.products', page=page_num, **request.args) }}">{{ page_num }}</a>
+                            <a class="page-link" href="{{ url_for('main.products', page=page_num, category=request.args.get('category', ''), search=request.args.get('search', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), sort_by=request.args.get('sort_by', '')) }}">{{ page_num }}</a>
                         </li>
                     {% else %}
                         <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -155,7 +155,7 @@
 
                 {% if products.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.products', page=products.next_num, **request.args) }}">التالي &raquo;</a>
+                        <a class="page-link" href="{{ url_for('main.products', page=products.next_num, category=request.args.get('category', ''), search=request.args.get('search', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), sort_by=request.args.get('sort_by', '')) }}">التالي &raquo;</a>
                     </li>
                 {% else %}
                     <li class="page-item disabled">
