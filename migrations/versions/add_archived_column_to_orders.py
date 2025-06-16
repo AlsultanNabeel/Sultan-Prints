@@ -1,7 +1,7 @@
 """add archived column to orders
 
 Revision ID: add_archived_column_to_orders
-Revises: 03e18086b320
+Revises: 
 Create Date: 2025-06-15 23:34:10.522424
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_archived_column_to_orders'
-down_revision = '03e18086b320'
+down_revision = None
 branch_labels = None
 depends_on = None
 
