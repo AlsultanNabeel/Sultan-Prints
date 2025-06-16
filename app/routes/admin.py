@@ -99,111 +99,40 @@ def admin_home():
 
 @admin.route('/admin/login', methods=['GET', 'POST'])
 def login():
-    print(f"=== LOGIN FUNCTION CALLED ===")
+    print("=== LOGIN FUNCTION CALLED ===")
     print(f"Request method: {request.method}")
     print(f"Current session: {dict(session)}")
     print("==============================")
     
-    if admin_logged_in():
-        print("Already logged in, redirecting to products")
-        return redirect(url_for('admin.products'))
-    form = AdminLoginForm()
-    if form.validate_on_submit():
-        email = form.email.data.strip().lower()  # تنظيف وتوحيد تنسيق البريد الإلكتروني
-        password = form.password.data
-        #  استخدام القيم من الإعدادات
-        admin_email_from_config = current_app.config.get('ADMIN_EMAIL')
-        admin_password_from_config = current_app.config.get('ADMIN_PASSWORD')
-
-        # DEBUG: طباعة البيانات للتأكد
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
         print("=== DEBUG LOGIN ===")
         print(f"Email entered: {email}")
         print(f"Password entered: {password}")
-        print(f"Admin email from config: {admin_email_from_config}")
-        print(f"Admin password from config: {admin_password_from_config}")
-        print(f"Email match: {email.lower() == admin_email_from_config.lower()}")
-        print(f"Password match: {secrets.compare_digest(password, admin_password_from_config)}")
-        print("==================")
-
-        # Validate configuration values
-        if not admin_email_from_config or not isinstance(admin_email_from_config, str) or \
-           not admin_password_from_config or not isinstance(admin_password_from_config, str):
+        
+        # الحصول على بيانات المشرف من متغيرات البيئة
+        admin_email = current_app.config.get('ADMIN_EMAIL')
+        admin_password = current_app.config.get('ADMIN_PASSWORD')
+        
+        print(f"Admin email from config: {admin_email}")
+        print(f"Admin password from config: {admin_password}")
+        
+        if not admin_email or not admin_password:
+            current_app.logger.error("Admin credentials not configured")
+            flash('خطأ في إعدادات النظام', 'error')
+            return render_template('admin/login.html'), 500
             
-            log_event(
-                "Admin login configuration error: ADMIN_EMAIL or ADMIN_PASSWORD is missing, not a string, or empty in config.", 
-                level='error'
-            )
-            flash('خطأ في إعدادات النظام. يرجى التواصل مع مسؤول الموقع.', 'danger') 
-            return render_template('admin/login.html', form=form)
-
-        # منع هجمات الاختراق عن طريق التأخير المقصود في حالة الإدخال الخاطئ
-        # استخدام مقارنة آمنة من حيث التوقيت
-        
-        # إضافة تأخير عشوائي صغير لمنع هجمات التوقيت
-        time.sleep(0.2 + secrets.randbelow(10) / 100)  # بين 0.2 و 0.3 ثانية
-        
-        # حد محاولات تسجيل الدخول الفاشلة
-        failed_attempts = session.get('failed_login_attempts', 0)
-        if failed_attempts >= 5:
-            # التحقق من الوقت المنقضي منذ آخر محاولة
-            last_attempt_time = session.get('last_failed_attempt')
-            if last_attempt_time:
-                try:
-                    if isinstance(last_attempt_time, str):
-                        last_attempt_time = datetime.fromisoformat(last_attempt_time)
-                    
-                    # إذا لم تنقضي 15 دقيقة بعد، نرفض المحاولة
-                    if datetime.utcnow() - last_attempt_time < timedelta(minutes=15):
-                        log_event(f"Blocked admin login due to too many failed attempts from IP: {request.remote_addr}", level='warning')
-                        flash('تم تعطيل تسجيل الدخول مؤقتاً بسبب كثرة المحاولات الفاشلة. يرجى المحاولة لاحقاً.', 'danger')
-                        return render_template('admin/login.html', form=form)
-                    else:
-                        # إعادة تعيين العداد بعد انقضاء المدة
-                        session['failed_login_attempts'] = 0
-                except (ValueError, TypeError):
-                    # إعادة تعيين في حالة الخطأ
-                    session['failed_login_attempts'] = 0
-
-        # Perform comparison (case-insensitive email, case-sensitive password)
-        print(f"About to check credentials...")
-        if email.lower() == admin_email_from_config.lower() and secrets.compare_digest(password, admin_password_from_config):
-            print(f"Credentials match! Setting admin_logged_in...")
+        if email and password and email.lower() == admin_email.lower() and password == admin_password:
             session['admin_logged_in'] = True
-            session.permanent = True  # تفعيل الجلسة الدائمة
-            
-            # تسجيل وقت تسجيل الدخول وتخزينه في الجلسة (naive isoformat)
-            session['admin_last_active'] = datetime.utcnow().isoformat()
-            
-            # إعادة تعيين عداد المحاولات الفاشلة
-            session.pop('failed_login_attempts', None)
-            session.pop('last_failed_attempt', None)
-            
-            # DEBUG: طباعة حالة الجلسة بعد تسجيل الدخول
-            print("=== SESSION AFTER LOGIN ===")
-            print(f"Session data: {dict(session)}")
-            print(f"admin_logged_in: {session.get('admin_logged_in')}")
-            print(f"admin_last_active: {session.get('admin_last_active')}")
-            print("===========================")
-            
-            log_event(f"Admin login successful from IP: {request.remote_addr}", level='info')
+            session['admin_last_active'] = datetime.utcnow()
             flash('تم تسجيل الدخول بنجاح', 'success')
-            
-            # العودة إلى الصفحة المطلوبة سابقاً إذا كانت موجودة
-            next_page = session.pop('next', None)
-            if next_page:
-                return redirect(next_page)
-            return redirect(url_for('admin.products'))
+            return redirect(url_for('admin.dashboard'))
         else:
-            print(f"Credentials do not match!")
-            # زيادة عدد المحاولات الفاشلة
-            failed_attempts = session.get('failed_login_attempts', 0) + 1
-            session['failed_login_attempts'] = failed_attempts
-            session['last_failed_attempt'] = datetime.utcnow().isoformat()
+            flash('بيانات الدخول غير صحيحة', 'error')
             
-            log_event(f"Failed admin login attempt #{failed_attempts} for email: {email} from IP: {request.remote_addr}", level='warning')
-            flash('بيانات الدخول غير صحيحة', 'danger')
-            
-    return render_template('admin/login.html', form=form)
+    return render_template('admin/login.html')
 
 @admin.route('/admin/logout')
 def logout():

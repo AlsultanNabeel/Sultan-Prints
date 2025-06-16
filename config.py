@@ -25,11 +25,27 @@ class Config:
     FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
     DEBUG = FLASK_ENV == 'development'
     
+    # إعدادات البريد الإلكتروني
+    MAIL_SERVER = 'smtp.gmail.com'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USE_SSL = False
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
+    MAIL_MAX_EMAILS = 10
+    MAIL_ASCII_ATTACHMENTS = False
+    MAIL_SUPPRESS_SEND = False
+    
+    # إعدادات المشرف
+    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
+    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+    
     # إعدادات DigitalOcean Spaces
     SPACES_KEY = os.environ.get('SPACES_KEY')
     SPACES_SECRET = os.environ.get('SPACES_SECRET')
+    SPACES_BUCKET_NAME = os.environ.get('SPACES_BUCKET_NAME')
     SPACES_REGION = os.environ.get('SPACES_REGION', 'fra1')
-    SPACES_BUCKET = os.environ.get('SPACES_BUCKET')
     SPACES_CDN_DOMAIN = os.environ.get('SPACES_CDN_DOMAIN')  # اختياري - إذا كنت تستخدم CDN
     
     # إعدادات قاعدة البيانات
@@ -57,14 +73,6 @@ class Config:
         'X-XSS-Protection': '1; mode=block',
         'Content-Security-Policy': "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' https:;"
     }
-    
-    # إعدادات البريد الإلكتروني
-    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', MAIL_USERNAME)
     
     # إعدادات التطبيق
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
