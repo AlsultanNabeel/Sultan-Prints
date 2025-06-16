@@ -21,8 +21,12 @@ def upgrade():
     # إضافة العمود كـ nullable أولاً
     op.add_column('orders', sa.Column('final_amount', sa.Float(), nullable=True))
     
-    # تحديث القيم الموجودة
-    op.execute("UPDATE orders SET final_amount = total_amount - discount_amount WHERE final_amount IS NULL")
+    # تحديث القيم الموجودة مع معالجة NULL
+    op.execute("""
+        UPDATE orders 
+        SET final_amount = COALESCE(total_amount, 0) - COALESCE(discount_amount, 0) 
+        WHERE final_amount IS NULL
+    """)
     
     # جعل العمود NOT NULL
     op.alter_column('orders', 'final_amount', nullable=False)
