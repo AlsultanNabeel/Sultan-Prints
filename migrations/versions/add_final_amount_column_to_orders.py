@@ -1,6 +1,6 @@
 """add final_amount column to orders
 
-Revision ID: add_final_amount_column_to_orders
+Revision ID: add_final_amount_to_orders
 Revises: add_archived_column_to_orders
 Create Date: 2025-06-16 20:16:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'add_final_amount_column_to_orders'
+revision = 'add_final_amount_to_orders'
 down_revision = 'add_archived_column_to_orders'
 branch_labels = None
 depends_on = None
