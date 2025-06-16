@@ -128,7 +128,7 @@ def login():
             session['admin_logged_in'] = True
             session['admin_last_active'] = datetime.utcnow()
             flash('تم تسجيل الدخول بنجاح', 'success')
-            return redirect(url_for('admin.dashboard'))
+            return redirect(url_for('admin.home'))
         else:
             flash('بيانات الدخول غير صحيحة', 'error')
             
