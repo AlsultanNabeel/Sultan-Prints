@@ -102,8 +102,8 @@ def create_app(config_name='default'):
             new_url = request.url.replace('sultanprints.studio', 'www.sultanprints.studio', 1)
             return redirect(new_url, code=301)
         
-        # إجبار HTTPS في حالة دخل بدون SSL (إذا ما اشتغل من DigitalOcean)
-        if not request.is_secure:
+        # إجبار HTTPS في حالة دخل بدون SSL (فقط في بيئة الإنتاج)
+        if app.config.get('ENV') == 'production' and not request.is_secure:
             url = request.url.replace("http://", "https://", 1)
             return redirect(url, code=301)
         

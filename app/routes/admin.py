@@ -686,74 +686,85 @@ def delete_governorate(gov_id):
         flash(f'حدث خطأ أثناء حذف المحافظة: {str(e)}. قد تكون هناك طلبات مرتبطة بهذه المحافظة.', 'danger')
     return redirect(url_for('admin.governorates'))
 
-@admin.route('/promocodes')
+@admin.route('/admin/promocodes')
 @admin_login_required
 def promocodes():
-    """صفحة إدارة أكواد الخصم"""
     promocodes = PromoCode.query.order_by(PromoCode.created_at.desc()).all()
     return render_template('admin/promocodes.html', promocodes=promocodes)
 
-@admin.route('/promocodes/add', methods=['GET', 'POST'])
+@admin.route('/admin/promocodes/add', methods=['GET', 'POST'])
 @admin_login_required
 def add_promocode():
-    """إضافة كود خصم جديد"""
     form = PromoCodeForm()
     if form.validate_on_submit():
-        promo_code = PromoCode(
-            code=form.code.data.upper(),
-            discount_percentage=form.discount_percentage.data,
-            max_uses=form.max_uses.data,
-            expiration_date=form.expiration_date.data,
-            is_active=form.is_active.data,
-            created_by_id=current_user.id
-        )
-        db.session.add(promo_code)
-        db.session.commit()
-        flash('تم إضافة كود الخصم بنجاح', 'success')
-        return redirect(url_for('admin.promocodes'))
-    return render_template('admin/promocode_form.html', form=form, title='إضافة كود خصم')
+        try:
+            promo_code = PromoCode(
+                code=form.code.data.upper(),
+                discount_percentage=form.discount_percentage.data,
+                max_uses=form.max_uses.data,
+                expiration_date=form.expiration_date.data,
+                is_active=form.is_active.data,
+                created_by_id=current_user.id
+            )
+            db.session.add(promo_code)
+            db.session.commit()
+            flash('تم إضافة كود الخصم بنجاح!', 'success')
+            return redirect(url_for('admin.promocodes'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ أثناء إضافة كود الخصم: {str(e)}', 'danger')
+    
+    return render_template('admin/add_promocode.html', form=form)
 
-@admin.route('/promocodes/edit/<int:id>', methods=['GET', 'POST'])
+@admin.route('/admin/promocodes/edit/<int:promo_id>', methods=['GET', 'POST'])
 @admin_login_required
-def edit_promocode(id):
-    """تعديل كود خصم"""
-    promo_code = PromoCode.query.get_or_404(id)
+def edit_promocode(promo_id):
+    promo_code = PromoCode.query.get_or_404(promo_id)
     form = PromoCodeForm(obj=promo_code)
-    form._id = id  # للتحقق من عدم تكرار الكود عند التعديل
+    form._id = promo_id  # لتجنب التحقق من التكرار عند التعديل
     
     if form.validate_on_submit():
-        promo_code.code = form.code.data.upper()
-        promo_code.discount_percentage = form.discount_percentage.data
-        promo_code.max_uses = form.max_uses.data
-        promo_code.expiration_date = form.expiration_date.data
-        promo_code.is_active = form.is_active.data
-        
-        db.session.commit()
-        flash('تم تحديث كود الخصم بنجاح', 'success')
-        return redirect(url_for('admin.promocodes'))
+        try:
+            promo_code.code = form.code.data.upper()
+            promo_code.discount_percentage = form.discount_percentage.data
+            promo_code.max_uses = form.max_uses.data
+            promo_code.expiration_date = form.expiration_date.data
+            promo_code.is_active = form.is_active.data
+            
+            db.session.commit()
+            flash('تم تحديث كود الخصم بنجاح!', 'success')
+            return redirect(url_for('admin.promocodes'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ أثناء تحديث كود الخصم: {str(e)}', 'danger')
     
-    return render_template('admin/promocode_form.html', form=form, title='تعديل كود خصم')
+    return render_template('admin/edit_promocode.html', form=form, promo_code=promo_code)
 
-@admin.route('/promocodes/delete/<int:id>', methods=['POST'])
+@admin.route('/admin/promocodes/delete/<int:promo_id>', methods=['POST'])
 @admin_login_required
-def delete_promocode(id):
-    """حذف كود خصم"""
-    promo_code = PromoCode.query.get_or_404(id)
-    if promo_code.orders.count() > 0:
-        flash('لا يمكن حذف كود الخصم لأنه مستخدم في طلبات', 'error')
-    else:
+def delete_promocode(promo_id):
+    promo_code = PromoCode.query.get_or_404(promo_id)
+    try:
         db.session.delete(promo_code)
         db.session.commit()
-        flash('تم حذف كود الخصم بنجاح', 'success')
+        flash('تم حذف كود الخصم بنجاح!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ أثناء حذف كود الخصم: {str(e)}', 'danger')
+    
     return redirect(url_for('admin.promocodes'))
 
-@admin.route('/promocodes/toggle/<int:id>', methods=['POST'])
+@admin.route('/admin/promocodes/toggle/<int:promo_id>', methods=['POST'])
 @admin_login_required
-def toggle_promocode(id):
-    """تفعيل/تعطيل كود خصم"""
-    promo_code = PromoCode.query.get_or_404(id)
-    promo_code.is_active = not promo_code.is_active
-    db.session.commit()
-    status = 'تفعيل' if promo_code.is_active else 'تعطيل'
-    flash(f'تم {status} كود الخصم بنجاح', 'success')
+def toggle_promocode(promo_id):
+    promo_code = PromoCode.query.get_or_404(promo_id)
+    try:
+        promo_code.is_active = not promo_code.is_active
+        db.session.commit()
+        status = 'تفعيل' if promo_code.is_active else 'إلغاء تفعيل'
+        flash(f'تم {status} كود الخصم بنجاح!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ أثناء تحديث حالة كود الخصم: {str(e)}', 'danger')
+    
     return redirect(url_for('admin.promocodes'))

@@ -40,8 +40,13 @@
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <img src="{{ url_for('static', filename=item.product.image or 'images/placeholder.jpg') }}" 
-                                                     alt="{{ item.product.name }}" class="img-fluid rounded" width="70">
+                                                {% if item.custom_design_path %}
+                                                    <img src="{{ url_for('static', filename='uploads/custom_designs/' + item.custom_design_path) }}" 
+                                                         alt="تصميم مخصص" class="img-fluid rounded" width="70" style="object-fit: cover;">
+                                                {% else %}
+                                                    <img src="{{ url_for('static', filename=item.product.image or 'images/placeholder.jpg') }}" 
+                                                         alt="{{ item.product.name }}" class="img-fluid rounded" width="70">
+                                                {% endif %}
                                                 <div class="ms-3">
                                                     <h6 class="mb-1">{{ item.product.name }}</h6>
                                                     <div class="small text-muted">
@@ -53,7 +58,7 @@
                                                     </div>
                                                     {% elif item.custom_design_path %}
                                                     <div class="small text-muted">
-                                                        التصميم: تصميم مخصص
+                                                        <i class="fas fa-palette me-1"></i>تصميم مخصص
                                                     </div>
                                                     {% endif %}
                                                 </div>

@@ -13,48 +13,16 @@ from flask_login import login_required
 
 cart_bp = Blueprint('cart', __name__, url_prefix='/cart')
 
-def get_or_create_cart():
-    """
-    الحصول على سلة التسوق الحالية أو إنشاء واحدة جديدة
-    
-    يقوم بالتحقق من وجود معرف سلة في الجلسة
-    إذا كان موجوداً، يحاول استرداد السلة من قاعدة البيانات
-    إذا لم يكن موجوداً أو لم يتم العثور على السلة، يقوم بإنشاء سلة جديدة
-    
-    Returns:
-        Cart: كائن سلة التسوق
-    """
-    try:
-        cart_id = session.get('cart_id')
-        if cart_id:
-            cart = Cart.query.filter_by(session_id=cart_id).first()
-            if cart:
-                # تحديث وقت الإنشاء للسلة لمنع انتهاء صلاحيتها
-                cart.created_at = datetime.utcnow()
-                db.session.commit()
-                return cart
-                
-        # إنشاء معرّف جلسة جديد وسلة جديدة
-        session_id = str(uuid.uuid4())
-        cart = Cart(session_id=session_id)
-        db.session.add(cart)
-        db.session.commit()
-        session['cart_id'] = session_id
-        return cart
-    except Exception as e:
-        current_app.logger.error(f"Error in get_or_create_cart: {str(e)}", exc_info=True)
-        # في حالة حدوث خطأ، نحاول إنشاء سلة جديدة كحل بديل
-        try:
-            session_id = str(uuid.uuid4())
-            cart = Cart(session_id=session_id)
-            db.session.add(cart)
-            db.session.commit()
-            session['cart_id'] = session_id
-            return cart
-        except Exception as inner_e:
-            # في حالة فشل الحل البديل، نسجل الخطأ ونعيد None
-            current_app.logger.critical(f"Critical error creating cart: {str(inner_e)}", exc_info=True)
-            return None
+def generate_order_number():
+    """توليد رقم طلب فريد"""
+    import random
+    import string
+    # توليد رقم طلب من 8 أرقام
+    order_number = ''.join(random.choices(string.digits, k=8))
+    # التحقق من عدم تكرار الرقم
+    while Order.query.filter_by(reference=order_number).first():
+        order_number = ''.join(random.choices(string.digits, k=8))
+    return order_number
 
 @cart_bp.route('/cart')
 def cart():
@@ -220,25 +188,65 @@ def checkout():
             return redirect(url_for('cart.cart'))
             
         form = CheckoutForm()
+        
+        # تحميل قائمة المحافظات
+        governorates = Governorate.query.order_by(Governorate.name.asc()).all()
+        form.governorate_id.choices = [('', 'اختر المحافظة')] + [(g.id, g.name) for g in governorates]
+        
         if form.validate_on_submit():
             # حساب المجموع الكلي للمنتجات
             products_total = sum(item.product.price * item.quantity for item in cart.items)
             
+            # حساب رسوم التوصيل
+            governorate = Governorate.query.get(form.governorate_id.data)
+            delivery_fee = governorate.delivery_fee if governorate else 0
+            
+            # حساب الخصم إذا كان هناك كود خصم
+            discount_amount = 0
+            promo_code_id = None
+            if 'promo_code' in session:
+                promo_data = session['promo_code']
+                discount_amount = promo_data['discount_amount']
+                promo_code_id = promo_data['id']
+            
             # حساب إجمالي الطلب
-            delivery_fee = 0  # سيتم حسابها لاحقاً
-            total_amount = products_total + delivery_fee
+            subtotal = products_total + delivery_fee
+            final_amount = subtotal - discount_amount
             
             # إنشاء الطلب
             order = Order(
-                order_number=generate_order_number(),
-                customer_name=form.customer_name.data,
-                customer_phone=form.customer_phone.data,
-                customer_email=form.customer_email.data,
+                reference=generate_order_number(),
+                customer_name=form.name.data,
+                customer_phone=form.phone.data,
+                customer_email=form.email.data,
                 governorate_id=form.governorate_id.data,
                 address=form.address.data,
-                total_amount=total_amount,
+                delivery_fee=delivery_fee,
+                payment_method=form.payment_method.data,
+                total_amount=subtotal,
+                discount_amount=discount_amount,
+                final_amount=final_amount,
+                promo_code_id=promo_code_id,
                 status='pending'
             )
+            
+            # معالجة إيصال فودافون كاش إذا تم اختياره
+            if form.payment_method.data == 'vodafone_cash' and form.vodafone_receipt.data:
+                receipt_file = form.vodafone_receipt.data
+                if receipt_file.filename:
+                    filename = secure_filename(receipt_file.filename)
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f"vodafone_receipt_{timestamp}_{filename}"
+                    
+                    # إنشاء مجلد الإيصالات إذا لم يكن موجوداً
+                    receipts_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'receipts')
+                    os.makedirs(receipts_folder, exist_ok=True)
+                    
+                    file_path = os.path.join(receipts_folder, filename)
+                    receipt_file.save(file_path)
+                    
+                    # حفظ اسم الملف في قاعدة البيانات
+                    order.vodafone_receipt = f"receipts/{filename}"
             
             try:
                 db.session.add(order)
@@ -249,21 +257,36 @@ def checkout():
                     order_item = OrderItem(
                         order_id=order.id,
                         product_id=item.product_id,
+                        product_name=item.product.name,  # إضافة اسم المنتج
                         quantity=item.quantity,
                         price=item.product.price,
                         size=item.size,
-                        color=item.color
+                        color=item.color,
+                        custom_design_path=item.custom_design_path  # إضافة مسار التصميم المخصص
                     )
                     db.session.add(order_item)
+                
+                # زيادة عدد مرات استخدام كود الخصم
+                if promo_code_id:
+                    promo_code = PromoCode.query.get(promo_code_id)
+                    if promo_code:
+                        promo_code.uses_count += 1
                 
                 db.session.commit()
                 
                 # تفريغ السلة
-                cart.items.delete()
+                for item in cart.items:
+                    db.session.delete(item)
                 db.session.commit()
                 
+                # إزالة كود الخصم من الجلسة
+                session.pop('promo_code', None)
+                
+                # إعادة تعيين عدد العناصر في الجلسة
+                session['cart_count'] = 0
+                
                 flash('تم إنشاء الطلب بنجاح!', 'success')
-                return redirect(url_for('cart.order_confirmation', order_number=order.order_number))
+                return redirect(url_for('cart.order_confirmation', order_number=order.reference))
                 
             except Exception as e:
                 db.session.rollback()
@@ -402,7 +425,7 @@ def apply_promocode():
 
     # حساب إجمالي السلة
     cart = get_or_create_cart()
-    total_amount = sum(item.price * item.quantity for item in cart.items)
+    total_amount = sum(item.product.price * item.quantity for item in cart.items)
     
     # تطبيق الخصم
     discount_amount = total_amount * (promo_code.discount_percentage / 100)
@@ -432,7 +455,7 @@ def remove_promocode():
     """إزالة كود الخصم من السلة"""
     session.pop('promo_code', None)
     cart = get_or_create_cart()
-    total_amount = sum(item.price * item.quantity for item in cart.items)
+    total_amount = sum(item.product.price * item.quantity for item in cart.items)
     
     return jsonify({
         'success': True,

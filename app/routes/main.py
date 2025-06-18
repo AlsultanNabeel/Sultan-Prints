@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, abort
-from app.models import Product, Design, Contact, Order, Page, Setting, Announcement, FAQ, CustomDesign, Governorate
+from app.models import Product, Design, Contact, Order, Page, Setting, Announcement, FAQ, CustomDesign, Governorate, CartItem
 from app.forms import ContactForm
 from app import db
 from app.utils.email_utils import send_email
@@ -12,6 +12,7 @@ from datetime import datetime
 import requests
 import random
 import string
+from flask import session
 
 main = Blueprint('main', __name__, template_folder='../../templates')
 
@@ -38,67 +39,10 @@ def index():
                            about_us_content=settings.get('homepage_about_us_content'),
                            about_products_content=settings.get('homepage_about_products_content'))
 
-@main.route('/custom-design', methods=['GET', 'POST'])
+@main.route('/custom-design', methods=['GET'])
 def custom_design():
-    if request.method == 'POST':
-        if 'design_file' not in request.files:
-            flash('يرجى اختيار ملف التصميم', 'error')
-            return redirect(request.url)
-        
-        file = request.files['design_file']
-        if file.filename == '':
-            flash('لم يتم اختيار ملف', 'error')
-            return redirect(request.url)
-        
-        if file and allowed_file(file.filename):
-            # Save design file
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"custom_design_{timestamp}_{filename}"
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'custom_designs', filename)
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            file.save(file_path)
-            
-            # Create custom design record
-            custom_design = CustomDesign(
-                design_file=filename,
-                design_description=request.form.get('description', ''),
-                status='pending'
-            )
-            db.session.add(custom_design)
-            db.session.commit()
-            
-            # Create order for custom design
-            order_data = {
-                'reference': ''.join(random.choices(string.ascii_uppercase + string.digits, k=8)),
-                'customer_name': request.form.get('customer_name', ''),
-                'customer_email': request.form.get('customer_email', ''),
-                'customer_phone': request.form.get('customer_phone', ''),
-                'address': request.form.get('address', ''),
-                'governorate_id': request.form.get('governorate_id'),
-                'delivery_fee': 50.0,  # Fixed delivery fee
-                'payment_method': 'vodafone_cash',
-                'total_amount': 600.0,  # Fixed price for custom design
-                'status': 'pending'
-            }
-            
-            # إنشاء الطلب بدون archived لتجنب مشاكل قاعدة البيانات
-            order = Order(**order_data)
-            
-            db.session.add(order)
-            db.session.commit()
-            
-            # Link custom design to order
-            custom_design.order_id = order.id
-            db.session.commit()
-            
-            flash('تم رفع التصميم المخصص بنجاح وإنشاء الطلب', 'success')
-            return redirect(url_for('cart.order_confirmation', order_number=order.reference))
-        else:
-            flash('نوع الملف غير مسموح به', 'error')
-    
-    governorates = Governorate.query.all()
-    return render_template('main/custom_design.html', governorates=governorates)
+    """عرض صفحة التصميم المخصص"""
+    return render_template('main/custom_design.html')
 
 @main.route('/products')
 def products():
@@ -325,67 +269,6 @@ def setup():
         return redirect(url_for('main.index'))
     return redirect(url_for('main.index'))
 
-@main.route('/upload_custom_design', methods=['POST'])
-def upload_custom_design():
-    file = request.files.get('design_image')
-    details = request.form.get('details', '')
-    size = request.form.get('size')
-    color = request.form.get('color')
-
-    if file and file.filename:
-        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'svg'}
-        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
-        if file_ext not in allowed_extensions:
-            flash(f"نوع الملف غير مسموح. الأنواع المسموحة: {', '.join(allowed_extensions)}", 'danger')
-            return redirect(url_for('main.index'))
-
-        filename = secure_filename(file.filename)
-        unique_filename = f"{uuid.uuid4().hex}_{filename}"
-        
-        upload_folder = os.path.join(current_app.static_folder, 'uploads', 'custom_requests')
-        os.makedirs(upload_folder, exist_ok=True)
-        
-        file_path = os.path.join(upload_folder, unique_filename)
-        
-        # Save metadata to a corresponding JSON file
-        base_filename, _ = os.path.splitext(unique_filename)
-        json_filename = f"{base_filename}.json"
-        json_filepath = os.path.join(upload_folder, json_filename)
-        
-        metadata = {
-            'original_filename': filename,
-            'size': size,
-            'color': color,
-            'details': details,
-            'uploaded_at': datetime.now().isoformat()
-        }
-        
-        try:
-            # Save the image
-            file.save(file_path)
-            
-            # Save the metadata
-            with open(json_filepath, 'w', encoding='utf-8') as f:
-                json.dump(metadata, f, ensure_ascii=False, indent=4)
-                
-            log_message = (
-                f"New custom design request: \n"
-                f"  File: {unique_filename}\n"
-                f"  Path: {file_path}\n"
-                f"  Size: {size}\n"
-                f"  Color: {color}\n"
-                f"  Details: {details}"
-            )
-            current_app.logger.info(log_message)
-            flash('تم رفع تصميمك بنجاح! سيتم التواصل معك قريبًا لمناقشة التفاصيل والتكلفة.', 'success')
-        except Exception as e:
-            current_app.logger.error(f"Error saving custom design: {e}")
-            flash('حدث خطأ أثناء حفظ التصميم. يرجى المحاولة مرة أخرى.', 'danger')
-            
-    else:
-        flash('يجب اختيار صورة تصميم لرفعها.', 'danger')
-    return redirect(url_for('main.custom_design'))
-
 @main.route('/api/products/quick-view/<int:product_id>')
 def product_quick_view(product_id):
     """API endpoint for quick product preview"""
@@ -514,3 +397,76 @@ def newsletter_subscribe():
     except Exception as e:
         current_app.logger.error(f"Newsletter subscription error: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': 'حدث خطأ في الخادم'}), 500
+
+@main.route('/add_custom_design_to_cart', methods=['POST'])
+def add_custom_design_to_cart():
+    """إضافة تصميم مخصص إلى السلة"""
+    try:
+        if 'design_file' not in request.files:
+            flash('يرجى اختيار ملف التصميم', 'error')
+            return redirect(url_for('main.custom_design'))
+        
+        file = request.files['design_file']
+        if file.filename == '':
+            flash('لم يتم اختيار ملف', 'error')
+            return redirect(url_for('main.custom_design'))
+        
+        if file and allowed_file(file.filename):
+            # حفظ ملف التصميم
+            filename = secure_filename(file.filename)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"custom_design_{timestamp}_{filename}"
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'custom_designs', filename)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            file.save(file_path)
+            
+            # الحصول على السلة الحالية
+            from app.utils import get_or_create_cart
+            cart = get_or_create_cart()
+            
+            # إضافة التصميم المخصص إلى السلة
+            from app.models import CartItem, Product
+            
+            # البحث عن منتج التصميم المخصص (أو إنشاؤه إذا لم يكن موجوداً)
+            custom_product = Product.query.filter_by(name='تصميم مخصص').first()
+            if not custom_product:
+                custom_product = Product(
+                    name='تصميم مخصص',
+                    description='تصميم مخصص حسب طلب العميل',
+                    price=600.0,
+                    category='custom',
+                    in_stock=True
+                )
+                db.session.add(custom_product)
+                db.session.commit()
+            
+            # إضافة العنصر إلى السلة
+            color = request.form.get('color', 'white')
+            size = 'M'  # مقاس افتراضي للتصميم المخصص
+            
+            cart_item = CartItem(
+                cart_id=cart.id,
+                product_id=custom_product.id,
+                custom_design_path=filename,
+                quantity=1,
+                size=size,
+                color=color
+            )
+            
+            db.session.add(cart_item)
+            db.session.commit()
+            
+            # تحديث عدد العناصر في الجلسة
+            total_items = sum(item.quantity for item in cart.items)
+            session['cart_count'] = total_items
+            
+            flash('تم إضافة التصميم المخصص إلى السلة بنجاح!', 'success')
+            return redirect(url_for('cart.cart'))
+        else:
+            flash('نوع الملف غير مسموح به', 'error')
+            return redirect(url_for('main.custom_design'))
+            
+    except Exception as e:
+        current_app.logger.error(f"Error adding custom design to cart: {str(e)}", exc_info=True)
+        flash('حدث خطأ أثناء إضافة التصميم إلى السلة', 'error')
+        return redirect(url_for('main.custom_design'))

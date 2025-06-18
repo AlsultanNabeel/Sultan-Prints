@@ -109,29 +109,61 @@
     transform: scale(1.1);
 }
 
-.size-option {
-    border: 2px solid #ddd;
-    border-radius: 10px;
-    padding: 15px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: bold;
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 3rem;
+    gap: 1rem;
 }
 
-.size-option.active {
-    border-color: #667eea;
+.step {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #e9ecef;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.step.active {
     background: #667eea;
     color: white;
+    transform: scale(1.1);
+}
+
+.step.completed {
+    background: #28a745;
+    color: white;
+}
+
+.step::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    width: 2rem;
+    height: 2px;
+    background: #e9ecef;
+    transform: translateY(-50%);
+}
+
+.step:last-child::after {
+    display: none;
 }
 
 .loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.7);
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -148,65 +180,29 @@
 
 .loading-spinner {
     background: white;
-    padding: 30px;
+    padding: 3rem;
     border-radius: 15px;
     text-align: center;
 }
 
-.step-indicator {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 30px;
-}
-
-.step {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #ddd;
+.price-display {
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    margin: 0 10px;
-    position: relative;
-}
-
-.step.active {
-    background: #667eea;
-}
-
-.step.completed {
-    background: #28a745;
-}
-
-.step:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    right: -20px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 2px;
-    background: #ddd;
-}
-
-.step.completed:not(:last-child)::after {
-    background: #28a745;
-}
-
-.preview-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 300px;
-    background: #f8f9fa;
-    border: 2px dashed #ddd;
+    padding: 1.5rem;
     border-radius: 15px;
-    color: #6c757d;
-    font-size: 1.1rem;
-    font-weight: 500;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.price-display h3 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.price-display p {
+    margin: 0.5rem 0 0 0;
+    opacity: 0.9;
 }
 </style>
 {% endblock %}
@@ -225,9 +221,6 @@
                 <div class="step-indicator">
                     <div class="step active" id="step1">1</div>
                     <div class="step" id="step2">2</div>
-                    <div class="step" id="step3">3</div>
-                    <div class="step" id="step4">4</div>
-                    <div class="step" id="step5">5</div>
                 </div>
                 
                 <div class="row g-4">
@@ -247,7 +240,7 @@
                     <!-- Design Form -->
                     <div class="col-lg-7">
                         <div class="design-form">
-                            <form method="post" action="{{ url_for('main.custom_design') }}" enctype="multipart/form-data" id="designForm">
+                            <form method="post" action="{{ url_for('main.add_custom_design_to_cart') }}" enctype="multipart/form-data" id="designForm">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 
                                 <!-- Step 1: Upload Design -->
@@ -267,111 +260,31 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Step 2: Customer Information -->
+                                <!-- Step 2: Choose Color -->
                                 <div class="step-content d-none" id="step2-content">
-                                    <h4 class="mb-3">2. بيانات العميل</h4>
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="customer_name" class="form-label">الاسم الكامل *</label>
-                                            <input type="text" class="form-control" id="customer_name" name="customer_name" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="customer_email" class="form-label">البريد الإلكتروني *</label>
-                                            <input type="email" class="form-control" id="customer_email" name="customer_email" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="customer_phone" class="form-label">رقم الهاتف *</label>
-                                            <input type="tel" class="form-control" id="customer_phone" name="customer_phone" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="governorate_id" class="form-label">المحافظة *</label>
-                                            <select class="form-select" id="governorate_id" name="governorate_id" required>
-                                                <option value="">اختر المحافظة</option>
-                                                {% for governorate in governorates %}
-                                                <option value="{{ governorate.id }}">{{ governorate.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="col-12">
-                                            <label for="address" class="form-label">العنوان التفصيلي *</label>
-                                            <textarea class="form-control" id="address" name="address" rows="3" required 
-                                                      placeholder="الشارع، المبنى، الشقة، إلخ..."></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="mt-4 d-flex justify-content-between">
-                                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
-                                            <i class="fas fa-arrow-right me-2"></i>السابق
-                                        </button>
-                                        <button type="button" class="btn btn-primary" onclick="nextStep()">
-                                            التالي <i class="fas fa-arrow-left ms-2"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Step 3: Choose Size -->
-                                <div class="step-content d-none" id="step3-content">
-                                    <h4 class="mb-3">3. اختر المقاس</h4>
-                                    <div class="row g-3">
-                                        <div class="col-3">
-                                            <div class="size-option" data-size="S">S</div>
-                                        </div>
-                                        <div class="col-3">
-                                            <div class="size-option active" data-size="M">M</div>
-                                        </div>
-                                        <div class="col-3">
-                                            <div class="size-option" data-size="L">L</div>
-                                        </div>
-                                        <div class="col-3">
-                                            <div class="size-option" data-size="XL">XL</div>
-                                        </div>
-                                    </div>
-                                    <input type="hidden" name="size" id="selectedSize" value="M">
-                                    <div class="mt-4 d-flex justify-content-between">
-                                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
-                                            <i class="fas fa-arrow-right me-2"></i>السابق
-                                        </button>
-                                        <button type="button" class="btn btn-primary" onclick="nextStep()">
-                                            التالي <i class="fas fa-arrow-left ms-2"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Step 4: Choose Color -->
-                                <div class="step-content d-none" id="step4-content">
-                                    <h4 class="mb-3">4. اختر اللون</h4>
+                                    <h4 class="mb-3">2. اختر اللون</h4>
                                     <div class="d-flex gap-3 mb-4">
                                         <div class="color-option active" style="background: white; border: 1px solid #ddd;" data-color="white"></div>
                                         <div class="color-option" style="background: black;" data-color="black"></div>
+                                        <div class="color-option" style="background: #ff6b6b;" data-color="red"></div>
+                                        <div class="color-option" style="background: #4ecdc4;" data-color="cyan"></div>
+                                        <div class="color-option" style="background: #45b7d1;" data-color="blue"></div>
+                                        <div class="color-option" style="background: #96ceb4;" data-color="green"></div>
                                     </div>
                                     <input type="hidden" name="color" id="selectedColor" value="white">
-                                    <div class="mt-4 d-flex justify-content-between">
-                                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
-                                            <i class="fas fa-arrow-right me-2"></i>السابق
-                                        </button>
-                                        <button type="button" class="btn btn-primary" onclick="nextStep()">
-                                            التالي <i class="fas fa-arrow-left ms-2"></i>
-                                        </button>
+                                    
+                                    <!-- Price Display -->
+                                    <div class="price-display">
+                                        <h3>600 جنيه</h3>
+                                        <p>سعر التصميم المخصص + رسوم التوصيل</p>
                                     </div>
-                                </div>
-                                
-                                <!-- Step 5: Additional Details -->
-                                <div class="step-content d-none" id="step5-content">
-                                    <h4 class="mb-3">5. تفاصيل إضافية</h4>
-                                    <div class="mb-3">
-                                        <label for="description" class="form-label">ملاحظات حول التصميم (اختياري)</label>
-                                        <textarea class="form-control" id="description" name="description" rows="4" 
-                                                  placeholder="أي ملاحظات حول التصميم، مكان الطباعة، إلخ."></textarea>
-                                    </div>
-                                    <div class="alert alert-info">
-                                        <h6>ملاحظة مهمة:</h6>
-                                        <p class="mb-0">سعر التصميم المخصص: <strong>600 جنيه</strong> + رسوم التوصيل</p>
-                                    </div>
+                                    
                                     <div class="mt-4 d-flex justify-content-between">
                                         <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
                                             <i class="fas fa-arrow-right me-2"></i>السابق
                                         </button>
                                         <button type="submit" class="btn btn-success btn-lg">
-                                            <i class="fas fa-paper-plane me-2"></i>إرسال الطلب
+                                            <i class="fas fa-shopping-cart me-2"></i>أضف إلى السلة
                                         </button>
                                     </div>
                                 </div>
@@ -388,14 +301,14 @@
 <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner">
         <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
-        <h5>جاري رفع التصميم...</h5>
+        <h5>جاري إضافة التصميم إلى السلة...</h5>
         <p class="text-muted">يرجى الانتظار</p>
     </div>
 </div>
 
 <script>
 let currentStep = 1;
-const totalSteps = 5;
+const totalSteps = 2;
 
 // File upload handling
 document.getElementById('design_file').addEventListener('change', function(e) {
@@ -471,15 +384,6 @@ function prevStep() {
         document.getElementById(`step${currentStep}`).classList.add('active');
     }
 }
-
-// Size selection
-document.querySelectorAll('.size-option').forEach(option => {
-    option.addEventListener('click', function() {
-        document.querySelectorAll('.size-option').forEach(opt => opt.classList.remove('active'));
-        this.classList.add('active');
-        document.getElementById('selectedSize').value = this.dataset.size;
-    });
-});
 
 // Color selection
 document.querySelectorAll('.color-option').forEach(option => {

@@ -6,7 +6,10 @@
 <section class="admin-order-detail py-5">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="fw-bold">تفاصيل الطلب #{{ order.reference }}</h1>
+            <h1 class="fw-bold">
+                <i class="fas fa-receipt me-2 text-primary"></i>
+                تفاصيل الطلب #{{ order.reference }}
+            </h1>
             <a href="{{ url_for('admin.orders') }}" class="btn btn-outline-primary">
                 <i class="fas fa-arrow-right me-2"></i> العودة للطلبات
             </a>
@@ -23,82 +26,118 @@
                 <!-- Order Information -->
                 <div class="row mb-4">
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-white">
-                                <h5 class="mb-0">معلومات العميل</h5>
+                        <div class="card h-100 border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-user me-2"></i>
+                                    معلومات العميل
+                                </h5>
                             </div>
                             <div class="card-body">
-                                <p><strong>الاسم:</strong> {{ order.customer_name }}</p>
-                                <p><strong>رقم الهاتف:</strong> {{ order.customer_phone }}</p>
-                                <p><strong>البريد الإلكتروني:</strong> {{ order.customer_email }}</p>
-                                <p><strong>العنوان:</strong> {{ order.address }}</p>
+                                <div class="mb-3">
+                                    <strong>الاسم:</strong> 
+                                    <span class="badge bg-info">{{ order.customer_name }}</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>رقم الهاتف:</strong> 
+                                    <span class="badge bg-secondary">{{ order.customer_phone }}</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>البريد الإلكتروني:</strong> 
+                                    <span class="text-primary">{{ order.customer_email }}</span>
+                                </div>
+                                <div class="mb-0">
+                                    <strong>العنوان:</strong> 
+                                    <p class="mb-0 mt-1">{{ order.address }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-white">
-                                <h5 class="mb-0">معلومات الطلب</h5>
+                        <div class="card h-100 border-success">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-shopping-cart me-2"></i>
+                                    معلومات الطلب
+                                </h5>
                             </div>
                             <div class="card-body">
-                                <p><strong>رقم الطلب:</strong> {{ order.reference }}</p>
-                                <p><strong>تاريخ الطلب:</strong> {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
-                                <p><strong>طريقة الدفع:</strong> 
+                                <div class="mb-3">
+                                    <strong>رقم الطلب:</strong> 
+                                    <span class="badge bg-primary fs-6">{{ order.reference }}</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>تاريخ الطلب:</strong> 
+                                    <span class="text-muted">{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>طريقة الدفع:</strong> 
                                     {% if order.payment_method == 'vodafone_cash' %}
                                         <span class="badge bg-danger">فودافون كاش</span>
                                     {% elif order.payment_method == 'cod' %}
                                         <span class="badge bg-secondary">الدفع عند الاستلام</span>
                                     {% else %}
-                                        {{ order.payment_method }}
+                                        <span class="badge bg-info">{{ order.payment_method }}</span>
                                     {% endif %}
-                                </p>
-                                <p><strong>إجمالي المبلغ:</strong> {{ "{:,.2f}".format(order.total_amount) }} جنيه</p>
+                                </div>
+                                <div class="mb-0">
+                                    <strong>إجمالي المبلغ:</strong> 
+                                    <span class="fw-bold text-success fs-5">{{ "{:,.2f}".format(order.total_amount) }} جنيه</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Order Status History -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">سجل حالة الطلب</h5>
+                <div class="card mb-4 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            سجل حالة الطلب
+                        </h5>
                     </div>
                     <div class="card-body">
                         {% if status_history %}
                             <ul class="list-group">
                                 {% for status in status_history %}
                                     <li class="list-group-item">
-                                        <div class="d-flex justify-content-between">
-                                            <strong>{{ status.status }}</strong>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ status.status }}</strong>
+                                                {% if status.notes %}
+                                                    <p class="mb-0 mt-1 text-muted">{{ status.notes }}</p>
+                                                {% endif %}
+                                            </div>
                                             <span class="text-muted">{{ status.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
                                         </div>
-                                        {% if status.notes %}
-                                            <p class="mb-0 mt-1 text-muted">{{ status.notes }}</p>
-                                        {% endif %}
                                     </li>
                                 {% endfor %}
                             </ul>
                         {% else %}
-                            <p>لا يوجد سجل لحالات هذا الطلب بعد.</p>
+                            <p class="text-muted">لا يوجد سجل لحالات هذا الطلب بعد.</p>
                         {% endif %}
                     </div>
                 </div>
 
                 <!-- Update Order Status Form -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">تحديث حالة الطلب</h5>
+                <div class="card mb-4 border-info">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-edit me-2"></i>
+                            تحديث حالة الطلب
+                        </h5>
                     </div>
                     <div class="card-body">
                         <form method="POST" action="{{ url_for('admin.order_detail', order_id=order.id) }}">
                             {{ form.hidden_tag() }}
                             <div class="mb-3">
-                                {{ form.status.label(class="form-label") }}
+                                {{ form.status.label(class="form-label fw-bold") }}
                                 {{ form.status(class="form-select") }}
                             </div>
                             <div class="mb-3">
-                                {{ form.notes.label(class="form-label") }}
-                                {{ form.notes(class="form-control", rows=3) }}
+                                {{ form.notes.label(class="form-label fw-bold") }}
+                                {{ form.notes(class="form-control", rows=3, placeholder="أضف ملاحظات حول حالة الطلب...") }}
                             </div>
                             {{ form.submit(class="btn btn-success") }}
                         </form>
@@ -107,27 +146,43 @@
 
                 <!-- Vodafone Cash Receipt -->
                 {% if order.payment_method == 'vodafone_cash' and order.vodafone_receipt %}
-                <div class="card mb-4">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">إيصال فودافون كاش</h5>
+                <div class="card mb-4 border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-receipt me-2"></i>
+                            إيصال فودافون كاش
+                        </h5>
                     </div>
                     <div class="card-body text-center">
-                        <a href="{{ url_for('static', filename=order.vodafone_receipt) }}" target="_blank">
-                            <img src="{{ url_for('static', filename=order.vodafone_receipt) }}" alt="إيصال الدفع" class="img-fluid img-thumbnail" style="max-height: 400px;">
-                        </a>
-                        <p class="mt-2">
-                            <a href="{{ url_for('static', filename=order.vodafone_receipt) }}" target="_blank" class="btn btn-primary">
+                        <div class="mb-3">
+                            <strong>رقم المحفظة:</strong> <span class="badge bg-danger fs-6">01023820614</span>
+                        </div>
+                        <div class="receipt-image-container">
+                            <img src="{{ url_for('static', filename='uploads/' + order.vodafone_receipt) }}" 
+                                 alt="إيصال الدفع" class="img-fluid img-thumbnail" 
+                                 style="max-height: 400px; max-width: 100%;">
+                        </div>
+                        <div class="mt-3">
+                            <a href="{{ url_for('static', filename='uploads/' + order.vodafone_receipt) }}" 
+                               target="_blank" class="btn btn-primary me-2">
                                 <i class="fas fa-expand-arrows-alt me-2"></i> عرض الصورة بحجم كامل
                             </a>
-                        </p>
+                            <a href="{{ url_for('static', filename='uploads/' + order.vodafone_receipt) }}" 
+                               download class="btn btn-success">
+                                <i class="fas fa-download me-2"></i> تحميل الإيصال
+                            </a>
+                        </div>
                     </div>
                 </div>
                 {% endif %}
                 
                 <!-- Order Items -->
-                <div class="card mb-4">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">المنتجات في الطلب</h5>
+                <div class="card mb-4 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-shopping-bag me-2"></i>
+                            المنتجات في الطلب
+                        </h5>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -147,17 +202,44 @@
                                     {% for item in order.order_items %}
                                     <tr>
                                         <td>
-                                            {{ item.product_name }}
+                                            <div class="d-flex align-items-center">
+                                                {% if item.custom_design_path %}
+                                                    <img src="{{ url_for('static', filename=item.custom_design_path) }}" 
+                                                         alt="تصميم خاص" class="img-thumbnail me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                                {% endif %}
+                                                <div>
+                                                    <strong>{{ item.product_name }}</strong>
+                                                    {% if item.custom_design_path %}
+                                                        <div class="small text-success">
+                                                            <i class="fas fa-palette me-1"></i>تصميم مخصص
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td>{{ item.size or 'N/A' }}</td>
-                                        <td>{{ item.color or 'N/A' }}</td>
-                                        <td>{{ item.quantity }}</td>
+                                        <td>
+                                            {% if item.size %}
+                                                <span class="badge bg-info">{{ item.size }}</span>
+                                            {% else %}
+                                                <span class="text-muted">غير محدد</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if item.color %}
+                                                <span class="badge bg-secondary">{{ item.color }}</span>
+                                            {% else %}
+                                                <span class="text-muted">غير محدد</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary fs-6">{{ item.quantity }}</span>
+                                        </td>
                                         <td>{{ "{:,.2f}".format(item.price) }} جنيه</td>
-                                        <td>{{ "{:,.2f}".format(item.price * item.quantity) }} جنيه</td>
+                                        <td class="fw-bold">{{ "{:,.2f}".format(item.price * item.quantity) }} جنيه</td>
                                         <td>
                                             {% if item.custom_design_path %}
-                                                <a href="{{ url_for('static', filename=item.custom_design_path) }}" target="_blank">
-                                                    <img src="{{ url_for('static', filename=item.custom_design_path) }}" alt="تصميم خاص" style="max-width: 80px; max-height: 80px; border:1px solid #ccc; border-radius:6px;">
+                                                <a href="{{ url_for('static', filename=item.custom_design_path) }}" target="_blank" class="btn btn-outline-success btn-sm">
+                                                    <i class="fas fa-eye me-1"></i>عرض التصميم
                                                 </a>
                                             {% else %}
                                                 <span class="text-muted">لا يوجد</span>
@@ -168,8 +250,19 @@
                                 </tbody>
                                 <tfoot class="table-light fw-bold">
                                     <tr>
-                                        <td colspan="5" class="text-end">الإجمالي النهائي للطلب</td>
-                                        <td>{{ "{:,.2f}".format(order.total_amount) }} جنيه</td>
+                                        <td colspan="5" class="text-end">إجمالي المنتجات:</td>
+                                        <td>{{ "{:,.2f}".format(order.total_amount - order.delivery_fee) }} جنيه</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="5" class="text-end">رسوم التوصيل:</td>
+                                        <td>{{ "{:,.2f}".format(order.delivery_fee) }} جنيه</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr class="table-primary">
+                                        <td colspan="5" class="text-end fs-5">الإجمالي النهائي للطلب:</td>
+                                        <td class="fs-5">{{ "{:,.2f}".format(order.total_amount) }} جنيه</td>
+                                        <td></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -178,23 +271,26 @@
                 </div>
 
                 <!-- Order Summary -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">الملخص المالي</h5>
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calculator me-2"></i>
+                            الملخص المالي
+                        </h5>
                     </div>
                     <div class="card-body">
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>إجمالي المنتجات</span>
-                                <strong>{{ "{:,.2f}".format(order.total_amount) }} جنيه</strong>
+                                <strong>{{ "{:,.2f}".format(order.total_amount - order.delivery_fee) }} جنيه</strong>
                             </li>
-                            <li class="list-group-item d-flex justify-content-between">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>رسوم الشحن</span>
                                 <strong>{{ "{:,.2f}".format(order.delivery_fee) }} جنيه</strong>
                             </li>
-                            <li class="list-group-item d-flex justify-content-between h5">
+                            <li class="list-group-item d-flex justify-content-between align-items-center h5 bg-light">
                                 <strong>الإجمالي النهائي</strong>
-                                <strong>{{ "{:,.2f}".format(order.total_amount) }} جنيه</strong>
+                                <strong class="text-success">{{ "{:,.2f}".format(order.total_amount) }} جنيه</strong>
                             </li>
                         </ul>
                     </div>

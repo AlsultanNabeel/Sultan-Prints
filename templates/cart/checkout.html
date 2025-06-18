@@ -52,17 +52,6 @@
             <p class="text-muted">أنت على بعد خطوة واحدة من الحصول على منتجاتك الرائعة.</p>
         </div>
         
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
         <form action="{{ url_for('cart.checkout') }}" method="post" enctype="multipart/form-data" id="checkout-form" novalidate>
             {{ form.csrf_token }}
             {% if form.errors %}
@@ -155,10 +144,29 @@
                                         </div>
                                     </div>
                                     <div class="payment-details" id="vodafone-details">
-                                        <p>يرجى تحويل المبلغ الإجمالي إلى الرقم: <strong class="text-danger">01023820614</strong></p>
-                                        <label for="vodafone_receipt" class="form-label">ارفع صورة إيصال الدفع</label>
-                                        {{ form.vodafone_receipt(class="form-control", id="vodafone_receipt", accept="image/*") }}
-                                        <div class="form-text">هذه الخطوة تؤكد عملية الدفع وتسرع من توصيل الطلب.</div>
+                                        <div class="alert alert-info">
+                                            <h6 class="alert-heading">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                خطوات الدفع بفودافون كاش:
+                                            </h6>
+                                            <ol class="mb-0">
+                                                <li>تحويل المبلغ الإجمالي إلى الرقم: <strong class="text-danger">01023820614</strong></li>
+                                                <li>التأكد من وصول التحويل بنجاح</li>
+                                                <li>رفع صورة إيصال الدفع أدناه</li>
+                                                <li>الضغط على "تأكيد الطلب الآن"</li>
+                                            </ol>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="vodafone_receipt" class="form-label fw-bold">
+                                                <i class="fas fa-upload me-2"></i>
+                                                رفع صورة إيصال الدفع
+                                            </label>
+                                            {{ form.vodafone_receipt(class="form-control", id="vodafone_receipt", accept="image/*") }}
+                                            <div class="form-text">
+                                                <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                                يجب أن تكون الصورة واضحة وتظهر تفاصيل التحويل والرقم المرجعي
+                                            </div>
+                                        </div>
                                     </div>
                                 </label>
                             </div>
@@ -192,9 +200,20 @@
                                         {% for item in cart_items %}
                                         <tr>
                                             <td>
-                                                <img src="{{ url_for('static', filename='uploads/' + item.product.image) }}" 
-                                                     alt="{{ item.product.name }}" class="img-thumbnail" style="width: 50px;">
-                                                {{ item.product.name }}
+                                                {% if item.custom_design_path %}
+                                                    <img src="{{ url_for('static', filename='uploads/custom_designs/' + item.custom_design_path) }}" 
+                                                         alt="تصميم مخصص" class="img-thumbnail" style="width: 50px; object-fit: cover;">
+                                                    <div class="mt-2">
+                                                        <strong>{{ item.product.name }}</strong>
+                                                        <div class="small text-muted">
+                                                            <i class="fas fa-palette me-1"></i>تصميم مخصص
+                                                        </div>
+                                                    </div>
+                                                {% else %}
+                                                    <img src="{{ url_for('static', filename='uploads/' + (item.product.image or 'placeholder.jpg')) }}" 
+                                                         alt="{{ item.product.name }}" class="img-thumbnail" style="width: 50px;">
+                                                    {{ item.product.name }}
+                                                {% endif %}
                                                 {% if item.color %} - {{ item.color }}{% endif %}
                                                 {% if item.size %} - {{ item.size }}{% endif %}
                                             </td>
@@ -238,6 +257,10 @@
     </div>
 </section>
 
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const paymentOptions = document.querySelectorAll('.payment-option');
@@ -280,6 +303,23 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!receiptInput.files.length) {
                 e.preventDefault();
                 alert('يرجى رفع إيصال الدفع عند اختيار فودافون كاش.');
+                return false;
+            }
+            
+            // التحقق من نوع الملف
+            const file = receiptInput.files[0];
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                e.preventDefault();
+                alert('يرجى رفع صورة صالحة (JPG, PNG, GIF) لإيصال الدفع.');
+                return false;
+            }
+            
+            // التحقق من حجم الملف (أقل من 5 ميجابايت)
+            if (file.size > 5 * 1024 * 1024) {
+                e.preventDefault();
+                alert('حجم الصورة يجب أن يكون أقل من 5 ميجابايت.');
+                return false;
             }
         }
     });
@@ -297,6 +337,21 @@ document.addEventListener('DOMContentLoaded', function() {
         finalTotalElem.textContent = total.toFixed(2) + ' جنيه';
     }
 
+    // تعيين رسوم التوصيل الافتراضية عند تحميل الصفحة
+    if (governorateSelect && governorateSelect.value) {
+        const govId = governorateSelect.value;
+        fetch(`/cart/get_delivery_fee/${govId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.delivery_fee !== undefined) {
+                    updateTotals(parseFloat(data.delivery_fee));
+                }
+            });
+    } else {
+        // إذا لم يتم اختيار محافظة، عرض رسوم افتراضية
+        updateTotals(0);
+    }
+
     if (governorateSelect) {
         governorateSelect.addEventListener('change', function() {
             const govId = this.value;
@@ -308,123 +363,112 @@ document.addEventListener('DOMContentLoaded', function() {
                             updateTotals(parseFloat(data.delivery_fee));
                         }
                     });
+            } else {
+                updateTotals(0);
             }
         });
     }
-});
-</script>
 
-{% block extra_js %}
-{{ super() }}
-<script>
-$(document).ready(function() {
-    let promoCodeApplied = false;
-    const csrfToken = "{{ csrf_token() }}";
+    // معالجة أكواد الخصم
+    const promoCodeInput = document.getElementById('promoCode');
+    const applyPromoBtn = document.getElementById('applyPromoCode');
+    const promoCodeMessage = document.getElementById('promoCodeMessage');
+    const discountRow = document.getElementById('discountRow');
+    const discountAmount = document.getElementById('discountAmount');
+    const finalTotal = document.getElementById('final-total');
 
-    // تطبيق كود الخصم
-    $('#applyPromoCode').click(function() {
-        const code = $('#promoCode').val().trim();
-        if (!code) {
-            showPromoMessage('يرجى إدخال كود الخصم', 'danger');
-            return;
-        }
-
-        $.ajax({
-            url: "{{ url_for('cart.apply_promocode') }}",
-            method: 'POST',
-            data: {
-                code: code,
-                csrf_token: csrfToken
-            },
-            success: function(response) {
-                if (response.success) {
-                    showPromoMessage(response.message, 'success');
-                    updateOrderSummary(response.data);
-                    promoCodeApplied = true;
-                    $('#promoCode').prop('disabled', true);
-                    $('#applyPromoCode').prop('disabled', true);
-                    // إضافة زر لإزالة الكود
-                    if (!$('#removePromoCode').length) {
-                        $('#applyPromoCode').after(
-                            '<button class="btn btn-outline-danger" type="button" id="removePromoCode">' +
-                            '<i class="fas fa-times"></i> إزالة الكود</button>'
-                        );
-                    }
-                } else {
-                    showPromoMessage(response.message, 'danger');
-                }
-            },
-            error: function() {
-                showPromoMessage('حدث خطأ أثناء تطبيق الكود', 'danger');
+    if (applyPromoBtn) {
+        applyPromoBtn.addEventListener('click', function() {
+            const code = promoCodeInput.value.trim();
+            if (!code) {
+                promoCodeMessage.textContent = 'يرجى إدخال كود الخصم';
+                promoCodeMessage.className = 'form-text text-danger';
+                return;
             }
+
+            fetch('/cart/apply-promocode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `code=${encodeURIComponent(code)}&csrf_token={{ csrf_token() }}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    promoCodeMessage.textContent = data.message;
+                    promoCodeMessage.className = 'form-text text-success';
+                    
+                    // عرض الخصم
+                    discountRow.style.display = 'table-row';
+                    discountAmount.textContent = `-${data.data.discount_amount.toFixed(2)} جنيه`;
+                    
+                    // تحديث الإجمالي النهائي
+                    const currentTotal = parseFloat(finalTotal.textContent.replace(' جنيه', ''));
+                    const newTotal = data.data.final_amount;
+                    finalTotal.textContent = `${newTotal.toFixed(2)} جنيه`;
+                    
+                    // تعطيل حقل الكود وزر التطبيق
+                    promoCodeInput.disabled = true;
+                    applyPromoBtn.disabled = true;
+                    applyPromoBtn.innerHTML = '<i class="fas fa-check"></i> تم التطبيق';
+                    
+                } else {
+                    promoCodeMessage.textContent = data.message;
+                    promoCodeMessage.className = 'form-text text-danger';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                promoCodeMessage.textContent = 'حدث خطأ أثناء تطبيق الكود';
+                promoCodeMessage.className = 'form-text text-danger';
+            });
         });
-    });
+    }
 
     // إزالة كود الخصم
-    $(document).on('click', '#removePromoCode', function() {
-        $.ajax({
-            url: "{{ url_for('cart.remove_promocode') }}",
+    function removePromoCode() {
+        fetch('/cart/remove-promocode', {
             method: 'POST',
-            data: {
-                csrf_token: csrfToken
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
             },
-            success: function(response) {
-                if (response.success) {
-                    showPromoMessage(response.message, 'success');
-                    updateOrderSummary(response.data);
-                    promoCodeApplied = false;
-                    $('#promoCode').prop('disabled', false).val('');
-                    $('#applyPromoCode').prop('disabled', false);
-                    $('#removePromoCode').remove();
-                }
-            },
-            error: function() {
-                showPromoMessage('حدث خطأ أثناء إزالة الكود', 'danger');
+            body: `csrf_token={{ csrf_token() }}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // إخفاء الخصم
+                discountRow.style.display = 'none';
+                
+                // إعادة تعيين الإجمالي
+                const newTotal = data.data.final_amount;
+                finalTotal.textContent = `${newTotal.toFixed(2)} جنيه`;
+                
+                // إعادة تفعيل حقل الكود
+                promoCodeInput.disabled = false;
+                applyPromoBtn.disabled = false;
+                applyPromoBtn.innerHTML = '<i class="fas fa-tag"></i> تطبيق';
+                
+                // مسح الرسائل
+                promoCodeMessage.textContent = '';
+                promoCodeMessage.className = 'form-text';
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
         });
-    });
-
-    function showPromoMessage(message, type) {
-        $('#promoCodeMessage')
-            .removeClass('text-danger text-success')
-            .addClass('text-' + type)
-            .text(message);
     }
 
-    function updateOrderSummary(data) {
-        $('#subtotal').text(data.original_amount.toFixed(2) + ' جنيه');
-        if (data.discount_amount > 0) {
-            $('#discountRow').show();
-            $('#discountAmount').text('-' + data.discount_amount.toFixed(2) + ' جنيه');
-        } else {
-            $('#discountRow').hide();
-            $('#discountAmount').text('0.00 جنيه');
-        }
-        $('#final-total').text(data.final_amount.toFixed(2) + ' جنيه');
+    // إضافة زر إزالة كود الخصم إذا كان مطبقاً
+    if (promoCodeInput && promoCodeInput.disabled) {
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-outline-danger btn-sm ms-2';
+        removeBtn.innerHTML = '<i class="fas fa-times"></i> إزالة';
+        removeBtn.onclick = removePromoCode;
+        applyPromoBtn.parentNode.appendChild(removeBtn);
     }
-
-    // تحديث رسوم التوصيل عند تغيير المحافظة
-    $('#governorate_id').change(function() {
-        const governorateId = $(this).val();
-        if (governorateId) {
-            $.get(`/cart/get_delivery_fee/${governorateId}`)
-                .done(function(response) {
-                    if (response.success) {
-                        const deliveryFee = parseFloat(response.delivery_fee);
-                        $('#shipping-cost').text(deliveryFee.toFixed(2) + ' جنيه');
-                        // تحديث الإجمالي النهائي
-                        const subtotal = parseFloat($('#subtotal').text());
-                        const discount = promoCodeApplied ? 
-                            parseFloat($('#discountAmount').text().replace('-', '').replace(' جنيه', '')) : 0;
-                        const total = subtotal - discount + deliveryFee;
-                        $('#final-total').text(total.toFixed(2) + ' جنيه');
-                    }
-                });
-        } else {
-            $('#shipping-cost').text('0.00 جنيه');
-        }
-    });
 });
 </script>
-{% endblock %}
 {% endblock %}

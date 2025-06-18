@@ -22,7 +22,7 @@
             overflow: hidden;
         }
         .header {
-            background-color: #1a2a44; /* A more "admin" color */
+            background-color: #1a2a44;
             color: #ffffff;
             padding: 25px;
             text-align: center;
@@ -46,21 +46,25 @@
         .order-summary table {
             width: 100%;
             border-collapse: collapse;
+            border: 1px solid #ddd;
         }
         .order-summary th, .order-summary td {
-            padding: 12px 0;
+            padding: 12px 8px;
             text-align: right;
             border-bottom: 1px solid #eeeeee;
+            border-left: 1px solid #ddd;
         }
         .order-summary th {
             font-weight: bold;
             color: #555;
+            background-color: #f8f9fa;
         }
         .order-summary .total-row td {
             font-weight: bold;
             font-size: 18px;
             color: #000;
             border-top: 2px solid #333;
+            background-color: #e9ecef;
         }
         .shipping-details {
             background-color: #f5f8ff;
@@ -88,6 +92,48 @@
             margin-top: 20px;
             font-weight: bold;
         }
+        .custom-design-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        .product-details {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .order-info {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .order-info h3 {
+            margin-top: 0;
+            color: #495057;
+            font-size: 18px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        .info-value {
+            color: #000;
+        }
     </style>
 </head>
 <body>
@@ -99,7 +145,35 @@
             <h2>مرحباً يا مدير، لقد تلقيت طلبًا جديدًا!</h2>
             <p>تم استلام طلب جديد على متجر Sultan Prints. رقم الطلب هو <strong>#{{ order.reference }}</strong>.</p>
 
-             <div class="shipping-details">
+            <div class="order-info">
+                <h3>معلومات الطلب الأساسية</h3>
+                <div class="info-row">
+                    <span class="info-label">رقم الطلب:</span>
+                    <span class="info-value">{{ order.reference }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">تاريخ الطلب:</span>
+                    <span class="info-value">{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">طريقة الدفع:</span>
+                    <span class="info-value">
+                        {% if order.payment_method == 'vodafone_cash' %}
+                            فودافون كاش
+                        {% elif order.payment_method == 'cod' %}
+                            الدفع عند الاستلام
+                        {% else %}
+                            {{ order.payment_method }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">إجمالي المبلغ:</span>
+                    <span class="info-value" style="font-weight: bold; font-size: 18px;">{{ "{:,.2f}".format(order.total_amount) }} جنيه</span>
+                </div>
+            </div>
+
+            <div class="shipping-details">
                 <h3>تفاصيل العميل</h3>
                 <p><strong>الاسم:</strong> {{ order.customer_name }}</p>
                 <p><strong>البريد الإلكتروني:</strong> {{ order.customer_email }}</p>
@@ -108,43 +182,51 @@
             </div>
 
             <div class="order-summary">
-                <h3>تفاصيل الطلب</h3>
+                <h3>تفاصيل المنتجات المطلوبة</h3>
                 <table>
                     <thead>
                         <tr>
                             <th>المنتج</th>
+                            <th style="text-align: center;">المقاس</th>
+                            <th style="text-align: center;">اللون</th>
                             <th style="text-align: center;">الكمية</th>
-                            <th style="text-align: left;">السعر</th>
+                            <th style="text-align: center;">السعر</th>
+                            <th style="text-align: center;">الإجمالي</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in order.order_items %}
                         <tr>
                             <td>
-                                {{ item.product_name }}
-                                <br>
-                                <small style="color: #666;">
+                                <strong>{{ item.product_name }}</strong>
+                                {% if item.custom_design_path %}
+                                    <br><span class="custom-design-badge">تصميم مخصص</span>
+                                {% endif %}
+                                <div class="product-details">
                                     {% if item.size %}المقاس: {{ item.size }}{% endif %}
                                     {% if item.color %} - اللون: {{ item.color }}{% endif %}
-                                </small>
+                                </div>
                             </td>
+                            <td style="text-align: center;">{{ item.size or 'غير محدد' }}</td>
+                            <td style="text-align: center;">{{ item.color or 'غير محدد' }}</td>
                             <td style="text-align: center;">{{ item.quantity }}</td>
-                            <td style="text-align: left;">{{ "%.2f"|format(item.price * item.quantity) }} جنيه</td>
+                            <td style="text-align: center;">{{ "{:,.2f}".format(item.price) }} جنيه</td>
+                            <td style="text-align: center;">{{ "{:,.2f}".format(item.price * item.quantity) }} جنيه</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="2">إجمالي المنتجات</td>
-                            <td style="text-align: left;">{{ "%.2f"|format(order.total_amount - order.delivery_fee) }} جنيه</td>
+                            <td colspan="4" style="text-align: left;">إجمالي المنتجات</td>
+                            <td colspan="2" style="text-align: center;">{{ "{:,.2f}".format(order.total_amount - order.delivery_fee) }} جنيه</td>
                         </tr>
-                         <tr>
-                            <td colspan="2">رسوم الشحن</td>
-                            <td style="text-align: left;">{{ "%.2f"|format(order.delivery_fee) }} جنيه</td>
+                        <tr>
+                            <td colspan="4" style="text-align: left;">رسوم الشحن</td>
+                            <td colspan="2" style="text-align: center;">{{ "{:,.2f}".format(order.delivery_fee) }} جنيه</td>
                         </tr>
                         <tr class="total-row">
-                            <td colspan="2">المجموع الكلي</td>
-                            <td style="text-align: left;">{{ "%.2f"|format(order.total_amount) }} جنيه</td>
+                            <td colspan="4" style="text-align: left;">المجموع الكلي</td>
+                            <td colspan="2" style="text-align: center;">{{ "{:,.2f}".format(order.total_amount) }} جنيه</td>
                         </tr>
                     </tfoot>
                 </table>

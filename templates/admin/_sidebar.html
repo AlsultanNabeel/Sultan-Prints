@@ -11,6 +11,9 @@
     <a href="{{ url_for('admin.custom_designs') }}" class="list-group-item list-group-item-action {% if 'custom_designs' in request.endpoint %}active{% endif %}">
         <i class="fas fa-upload me-2"></i> التصاميم المخصصة
     </a>
+    <a href="{{ url_for('admin.promocodes') }}" class="list-group-item list-group-item-action {% if 'promocodes' in request.endpoint %}active{% endif %}">
+        <i class="fas fa-tag me-2"></i> أكواد الخصم
+    </a>
     <a href="{{ url_for('admin.announcements') }}" class="list-group-item list-group-item-action {% if 'announcements' in request.endpoint %}active{% endif %}">
         <i class="fas fa-bullhorn me-2"></i> إدارة الإعلانات
     </a>

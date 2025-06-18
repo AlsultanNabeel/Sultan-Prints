@@ -130,6 +130,7 @@ Thumbs.db
 # Logs
 *.log
 logs/
+app_error.log
 
 # Temporary files
 *.tmp
@@ -146,3 +147,31 @@ config.py
 secrets.py
 .env.local
 .env.production
+
+# Backup files
+*.bak
+*.backup
+
+# Cache files
+.cache/
+*.cache
+
+# Node modules (if using any frontend tools)
+node_modules/
+
+# Compiled CSS/JS
+*.min.css
+*.min.js
+
+# Test files
+test_*.py
+*_test.py
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Docker
+.dockerignore
+docker-compose.override.yml

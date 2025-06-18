@@ -1,10 +1,8 @@
-
 import os
 import logging
 from app import create_app
 from app.extensions import db
 from flask_migrate import Migrate, upgrade
-from config import Config
 
 # إعداد تسجيل الأخطاء
 logging.basicConfig(
@@ -17,7 +15,7 @@ logging.basicConfig(
 )
 
 try:
-    app = create_app(os.getenv('FLASK_CONFIG') or Config)
+    app = create_app(os.getenv('FLASK_CONFIG') or 'default')
     migrate = Migrate(app, db)
 except Exception as e:
     logging.error(f"Error during app initialization: {str(e)}")
@@ -30,4 +28,4 @@ if __name__ == '__main__':
     #     print("🔄 Running automatic database upgrade...")
     #     upgrade()
     #     print("✅ Database upgrade completed.")
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

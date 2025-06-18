@@ -78,6 +78,11 @@ class CheckoutForm(FlaskForm):
     csrf_token = HiddenField()
     submit = SubmitField('إتمام الطلب')
 
+    def validate_vodafone_receipt(self, field):
+        """التحقق من رفع إيصال الدفع عند اختيار فودافون كاش"""
+        if self.payment_method.data == 'vodafone_cash' and not field.data:
+            raise ValidationError('يجب رفع إيصال الدفع عند اختيار فودافون كاش')
+
 class OrderStatusForm(FlaskForm):
     status = SelectField('حالة الطلب الجديدة', choices=[
         ('pending', 'قيد الانتظار'),

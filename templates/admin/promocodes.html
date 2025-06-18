@@ -1,86 +1,114 @@
-{% extends "admin/base.html" %}
+{% extends 'base.html' %}
+
+{% block title %}إدارة أكواد الخصم - لوحة التحكم{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">إدارة أكواد الخصم</h1>
-        <a href="{{ url_for('admin.add_promocode') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> إضافة كود خصم جديد
-        </a>
-    </div>
-
-    <div class="card shadow mb-4">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered" id="promocodesTable" width="100%" cellspacing="0">
-                    <thead>
-                        <tr>
-                            <th>الكود</th>
-                            <th>نسبة الخصم</th>
-                            <th>الحد الأقصى للاستخدام</th>
-                            <th>عدد مرات الاستخدام</th>
-                            <th>تاريخ انتهاء الصلاحية</th>
-                            <th>الحالة</th>
-                            <th>تاريخ الإنشاء</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for promo in promocodes %}
-                        <tr>
-                            <td>{{ promo.code }}</td>
-                            <td>{{ promo.discount_percentage }}%</td>
-                            <td>{{ promo.max_uses or 'غير محدود' }}</td>
-                            <td>{{ promo.uses_count }}</td>
-                            <td>{{ promo.expiration_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>
-                                <span class="badge badge-{{ 'success' if promo.is_active else 'danger' }}">
-                                    {{ 'نشط' if promo.is_active else 'غير نشط' }}
-                                </span>
-                            </td>
-                            <td>{{ promo.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ url_for('admin.edit_promocode', id=promo.id) }}" 
-                                       class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form action="{{ url_for('admin.toggle_promocode', id=promo.id) }}" 
-                                          method="POST" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-{{ 'warning' if promo.is_active else 'success' }}"
-                                                onclick="return confirm('هل أنت متأكد من {{ 'تعطيل' if promo.is_active else 'تفعيل' }} هذا الكود؟')">
-                                            <i class="fas fa-{{ 'ban' if promo.is_active else 'check' }}"></i>
-                                        </button>
-                                    </form>
-                                    <form action="{{ url_for('admin.delete_promocode', id=promo.id) }}" 
-                                          method="POST" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-danger"
-                                                onclick="return confirm('هل أنت متأكد من حذف هذا الكود؟')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+<section class="admin-promocodes py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="fw-bold">إدارة أكواد الخصم</h1>
+            <a href="{{ url_for('admin.add_promocode') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>إضافة كود خصم جديد
+            </a>
+        </div>
+        
+        <div class="row">
+            <!-- Admin Sidebar -->
+            <div class="col-lg-3 mb-4">
+                {% include 'admin/_sidebar.html' %}
+            </div>
+            
+            <!-- Admin Content -->
+            <div class="col-lg-9">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">أكواد الخصم المتاحة</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if promocodes %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>الكود</th>
+                                        <th>نسبة الخصم</th>
+                                        <th>الاستخدامات</th>
+                                        <th>تاريخ الانتهاء</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for promo in promocodes %}
+                                    <tr>
+                                        <td>
+                                            <span class="fw-bold text-primary">{{ promo.code }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">{{ promo.discount_percentage }}%</span>
+                                        </td>
+                                        <td>
+                                            {% if promo.max_uses %}
+                                                {{ promo.uses_count }}/{{ promo.max_uses }}
+                                            {% else %}
+                                                {{ promo.uses_count }} (غير محدود)
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="{% if promo.expiration_date < now %}text-danger{% endif %}">
+                                                {{ promo.expiration_date.strftime('%Y-%m-%d %H:%M') }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if promo.is_valid() %}
+                                                <span class="badge bg-success">نشط</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">غير نشط</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('admin.edit_promocode', promo_id=promo.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <form method="POST" action="{{ url_for('admin.toggle_promocode', promo_id=promo.id) }}" 
+                                                      style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning"
+                                                            onclick="return confirm('هل أنت متأكد من تغيير حالة هذا الكود؟')">
+                                                        <i class="fas fa-toggle-on"></i>
+                                                    </button>
+                                                </form>
+                                                <form method="POST" action="{{ url_for('admin.delete_promocode', promo_id=promo.id) }}" 
+                                                      style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                            onclick="return confirm('هل أنت متأكد من حذف هذا الكود؟')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-tag fa-4x text-muted mb-3"></i>
+                            <h5>لا توجد أكواد خصم</h5>
+                            <p>لم يتم إضافة أي أكواد خصم بعد.</p>
+                            <a href="{{ url_for('admin.add_promocode') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>إضافة أول كود خصم
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-$(document).ready(function() {
-    $('#promocodesTable').DataTable({
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Arabic.json"
-        },
-        "order": [[6, "desc"]], // ترتيب حسب تاريخ الإنشاء تنازلياً
-        "pageLength": 25
-    });
-});
-</script>
+</section>
 {% endblock %} 

@@ -7,6 +7,7 @@ from ..models import Setting, Cart, Product, CartItem
 import uuid
 import logging
 from .storage import spaces_storage
+from datetime import datetime
 
 def log_event(message, level='info'):
     """Logs an event using the application's logger."""
@@ -62,18 +63,37 @@ def inject_settings():
 
 def get_or_create_cart():
     """Gets the cart from the session or creates a new one."""
-    cart_session_id = session.get('cart_id')
-    if cart_session_id:
-        cart = Cart.query.filter_by(session_id=cart_session_id).first()
-        if cart:
+    try:
+        cart_session_id = session.get('cart_id')
+        if cart_session_id:
+            cart = Cart.query.filter_by(session_id=cart_session_id).first()
+            if cart:
+                # تحديث وقت الإنشاء للسلة لمنع انتهاء صلاحيتها
+                cart.created_at = datetime.utcnow()
+                db.session.commit()
+                return cart
+        
+        # إنشاء معرّف جلسة جديد وسلة جديدة
+        new_session_id = str(uuid.uuid4())
+        cart = Cart(session_id=new_session_id)
+        db.session.add(cart)
+        db.session.commit()
+        session['cart_id'] = new_session_id
+        return cart
+    except Exception as e:
+        current_app.logger.error(f"Error in get_or_create_cart: {str(e)}", exc_info=True)
+        # في حالة حدوث خطأ، نحاول إنشاء سلة جديدة كحل بديل
+        try:
+            session_id = str(uuid.uuid4())
+            cart = Cart(session_id=session_id)
+            db.session.add(cart)
+            db.session.commit()
+            session['cart_id'] = session_id
             return cart
-    
-    new_session_id = str(uuid.uuid4())
-    cart = Cart(session_id=new_session_id)
-    db.session.add(cart)
-    db.session.commit()
-    session['cart_id'] = new_session_id
-    return cart
+        except Exception as inner_e:
+            # في حالة فشل الحل البديل، نسجل الخطأ ونعيد None
+            current_app.logger.critical(f"Critical error creating cart: {str(inner_e)}", exc_info=True)
+            return None
 
 def calculate_cart_total(cart):
     """Calculates the total amount and item count for a given cart."""
