@@ -12,6 +12,7 @@ import json
 from werkzeug.utils import secure_filename
 from app.utils import allowed_file, log_event
 import shutil
+from flask_login import current_user
 
 admin = Blueprint('admin', __name__)
 
@@ -31,15 +32,6 @@ def admin_logged_in():
     """
     logged_in = session.get('admin_logged_in', False)
     
-    # DEBUG: طباعة حالة الجلسة
-    print("=== ADMIN_LOGGED_IN CHECK ===")
-    print(f"Session data: {dict(session)}")
-    print(f"admin_logged_in from session: {logged_in}")
-    print(f"admin_logged_in key exists: {'admin_logged_in' in session}")
-    print(f"admin_last_active exists: {'admin_last_active' in session}")
-    print(f"Session keys: {list(session.keys())}")
-    print("=============================")
-    
     # التحقق من وقت آخر نشاط
     last_active = session.get('admin_last_active')
     if logged_in and last_active:
@@ -56,7 +48,6 @@ def admin_logged_in():
             if datetime.utcnow() - last_active > timedelta(hours=1):
                 # انتهت صلاحية الجلسة
                 session.pop('admin_logged_in', None)
-                print("Session expired - removing admin_logged_in")
                 return False
                 
             # تحديث وقت آخر نشاط
@@ -64,7 +55,6 @@ def admin_logged_in():
         except (ValueError, TypeError, AttributeError) as e:
             # حدث خطأ في معالجة الوقت، نعتبر أن المستخدم غير مسجل
             session.pop('admin_logged_in', None)
-            print(f"Error processing time - removing admin_logged_in: {e}")
             return False
             
     return logged_in
@@ -73,11 +63,7 @@ def admin_login_required(f):
     from functools import wraps
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        print(f"=== ADMIN_LOGIN_REQUIRED CHECK ===")
-        print(f"Checking admin_logged_in for path: {request.path}")
         is_logged_in = admin_logged_in()
-        print(f"admin_logged_in result: {is_logged_in}")
-        print("==================================")
         
         if not is_logged_in:
             # تسجيل محاولة الوصول غير المصرح به
@@ -103,31 +89,19 @@ def admin_home():
 
 @admin.route('/admin/login', methods=['GET', 'POST'])
 def login():
-    print("=== LOGIN FUNCTION CALLED ===")
-    print(f"Request method: {request.method}")
-    print(f"Current session: {dict(session)}")
-    print("==============================")
-    
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        
-        print("=== DEBUG LOGIN ===")
-        print(f"Email entered: {email}")
-        print(f"Password entered: {password}")
         
         # الحصول على بيانات المشرف من متغيرات البيئة
         admin_email = current_app.config.get('ADMIN_EMAIL')
         admin_password = current_app.config.get('ADMIN_PASSWORD')
         
-        print(f"Admin email from config: {admin_email}")
-        print(f"Admin password from config: {admin_password}")
-        
         if not admin_email or not admin_password:
             current_app.logger.error("Admin credentials not configured")
             flash('خطأ في إعدادات النظام', 'error')
             return render_template('admin/login.html'), 500
-            
+        
         if email and password and email.lower() == admin_email.lower() and password == admin_password:
             session['admin_logged_in'] = True
             session['admin_last_active'] = datetime.utcnow()
@@ -193,6 +167,9 @@ def add_product():
         log_event(f"New product (ID: {product.id}) committed to DB by admin.", level='info')
         flash('تم إضافة المنتج بنجاح', 'success')
         return redirect(url_for('admin.products'))
+    else:
+        if form.errors:
+            flash('يرجى تصحيح الأخطاء في النموذج.', 'danger')
     return render_template('admin/add_product.html', form=form)
 
 @admin.route('/admin/edit_product/<int:product_id>', methods=['GET', 'POST'])
@@ -262,7 +239,6 @@ def delete_product(product_id):
             if os.path.exists(image_path):
                 try:
                     os.remove(image_path)
-                    current_app.logger.info(f"Deleted product image: {image_path}")
                 except Exception as e:
                     current_app.logger.warning(f"Could not delete product image {image_path}: {e}")
         
@@ -704,7 +680,7 @@ def add_promocode():
                 max_uses=form.max_uses.data,
                 expiration_date=form.expiration_date.data,
                 is_active=form.is_active.data,
-                created_by_id=current_user.id
+                created_by_id=None
             )
             db.session.add(promo_code)
             db.session.commit()

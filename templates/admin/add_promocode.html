@@ -3,6 +3,16 @@
 {% block title %}إضافة كود خصم جديد - لوحة التحكم{% endblock %}
 
 {% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
 <section class="admin-add-promocode py-5">
     <div class="container">
         <div class="row">
@@ -73,7 +83,7 @@
                                     <label for="{{ form.expiration_date.id }}" class="form-label">
                                         {{ form.expiration_date.label }}
                                     </label>
-                                    {{ form.expiration_date(class="form-control", type="datetime-local") }}
+                                    {{ form.expiration_date(class="form-control", type="date", value=form.expiration_date.data.strftime('%Y-%m-%d') if form.expiration_date.data else '') }}
                                     {% if form.expiration_date.errors %}
                                         <div class="invalid-feedback d-block">
                                             {% for error in form.expiration_date.errors %}
@@ -108,4 +118,39 @@
         </div>
     </div>
 </section>
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    var dateInput = document.querySelector('input[type="date"]');
+    if (!dateInput.value) {
+        e.preventDefault();
+        alert('يرجى تحديد تاريخ انتهاء الصلاحية');
+        dateInput.focus();
+        return false;
+    }
+    // تحقق أن التاريخ أكبر من اليوم (بتوقيت الجهاز)
+    var now = new Date();
+    var inputDate = new Date(dateInput.value);
+    // اجعل اليوم الحالي بدون وقت
+    now.setHours(0,0,0,0);
+    if (inputDate <= now) {
+        e.preventDefault();
+        alert('يجب أن يكون تاريخ الانتهاء بعد اليوم');
+        dateInput.focus();
+        return false;
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+});
+</script>
 {% endblock %} 

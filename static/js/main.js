@@ -221,12 +221,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // دالة لعرض الإشعارات
     window.showNotification = function(message, type) {
-        const notificationContainer = document.getElementById('notification-container');
+        let notificationContainer = document.getElementById('notification-container');
         if (!notificationContainer) {
-            const container = document.createElement('div');
-            container.id = 'notification-container';
-            container.className = 'notification-container';
-            document.body.appendChild(container);
+            notificationContainer = document.createElement('div');
+            notificationContainer.id = 'notification-container';
+            notificationContainer.className = 'notification-container';
+            notificationContainer.setAttribute('aria-live', 'polite');
+            document.body.appendChild(notificationContainer);
         }
         
         const notification = document.createElement('div');

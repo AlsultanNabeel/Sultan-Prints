@@ -1,8 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, FloatField, BooleanField, TextAreaField, IntegerField, SelectField, FileField, SelectMultipleField, RadioField, widgets, DateTimeField, HiddenField
+from wtforms import StringField, PasswordField, SubmitField, FloatField, BooleanField, TextAreaField, IntegerField, SelectField, FileField, SelectMultipleField, RadioField, widgets, DateTimeField, HiddenField, DateField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional, ValidationError
 from flask_wtf.file import FileAllowed
 from datetime import datetime
+from pytz import timezone
 
 def AtLeastOneSelected(form, field):
     if not field.data or len(field.data) == 0:
@@ -68,20 +69,10 @@ class CheckoutForm(FlaskForm):
     governorate_id = SelectField('المحافظة', validators=[DataRequired(message="الرجاء اختيار المحافظة.")], render_kw={"class": "form-control"})
     address = TextAreaField('العنوان بالتفصيل (الشارع، رقم المنزل، علامة مميزة)', validators=[DataRequired(), Length(min=10, max=500)])
     payment_method = RadioField('طريقة الدفع', choices=[
-        ('cod', 'الدفع عند الاستلام'),
-        ('vodafone_cash', 'فودافون كاش')
+        ('cod', 'الدفع عند الاستلام')
     ], validators=[DataRequired()])
-    vodafone_receipt = FileField('إيصال الدفع (لفودافون كاش فقط)', validators=[
-        Optional(),
-        FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'الصور فقط مسموح بها!')
-    ])
     csrf_token = HiddenField()
     submit = SubmitField('إتمام الطلب')
-
-    def validate_vodafone_receipt(self, field):
-        """التحقق من رفع إيصال الدفع عند اختيار فودافون كاش"""
-        if self.payment_method.data == 'vodafone_cash' and not field.data:
-            raise ValidationError('يجب رفع إيصال الدفع عند اختيار فودافون كاش')
 
 class OrderStatusForm(FlaskForm):
     status = SelectField('حالة الطلب الجديدة', choices=[
@@ -176,9 +167,7 @@ class PromoCodeForm(FlaskForm):
         Optional(),
         NumberRange(min=1, message='يجب أن يكون الحد الأقصى للاستخدام أكبر من 0')
     ])
-    expiration_date = DateTimeField('تاريخ انتهاء الصلاحية', validators=[
-        DataRequired(message='يرجى تحديد تاريخ انتهاء الصلاحية')
-    ], format='%Y-%m-%d %H:%M:%S')
+    expiration_date = DateField('تاريخ انتهاء الصلاحية', validators=[DataRequired(message='يرجى تحديد تاريخ انتهاء الصلاحية')], format='%Y-%m-%d')
     is_active = BooleanField('نشط')
 
     def validate_code(self, code):
@@ -189,6 +178,8 @@ class PromoCodeForm(FlaskForm):
             raise ValidationError('هذا الكود مستخدم بالفعل')
 
     def validate_expiration_date(self, expiration_date):
-        """التحقق من أن تاريخ انتهاء الصلاحية في المستقبل"""
-        if expiration_date.data <= datetime.utcnow():
-            raise ValidationError('يجب أن يكون تاريخ انتهاء الصلاحية في المستقبل')
+        """التحقق من أن تاريخ انتهاء الصلاحية في المستقبل (بتوقيت مصر)"""
+        egypt = timezone('Africa/Cairo')
+        now_egypt = datetime.now(egypt).date()
+        if expiration_date.data <= now_egypt:
+            raise ValidationError('يجب أن يكون تاريخ انتهاء الصلاحية بعد اليوم')

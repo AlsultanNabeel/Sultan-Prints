@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ title }} - متجر البلايز المميزة{% endblock %}
+{% block title %}تسوق المنتجات - Sultan Prints{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -10,246 +10,182 @@
       display: block;
       height: 100%;
   }
-
   .product-card-link .product-card {
-      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #f0f0f0;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      min-height: 370px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
   }
-
   .product-card-link:hover .product-card {
-      transform: translateY(-5px);
-      box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+      transform: translateY(-7px) scale(1.03);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.13);
+      border-color: #0d6efd;
   }
-  
-  .search-filter-bar {
+  .product-card .card-img-top {
+      height: 220px;
+      object-fit: cover;
+      border-radius: 18px 18px 0 0;
+      background: #f8f8f8;
+  }
+  .product-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: linear-gradient(90deg,#0d6efd 60%,#4ecdc4 100%);
+      color: #fff;
+      font-size: 0.95rem;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      z-index: 2;
+  }
+  .product-card .card-title {
+      font-size: 1.15rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: #222;
+  }
+  .product-card .card-text {
+      color: #888;
+      font-size: 1rem;
+      margin-bottom: 0.7rem;
+  }
+  .product-card .btn-details {
+      background: linear-gradient(90deg,#0d6efd 60%,#4ecdc4 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      padding: 7px 0;
+      width: 100%;
+      transition: background 0.2s;
+  }
+  .product-card .btn-details:hover {
+      background: linear-gradient(90deg,#4ecdc4 60%,#0d6efd 100%);
+      color: #fff;
+  }
+  .categories-strip {
       background: #f8f9fa;
-      border-radius: 10px;
-      padding: 20px;
+      border-radius: 12px;
+      padding: 18px 0 10px 0;
       margin-bottom: 30px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
   }
-  
-  .filter-modal .modal-content {
-      border-radius: 15px;
+  .category-link {
+      font-weight: 600;
+      font-size: 1.05rem;
+      border-radius: 20px;
+      margin-left: 8px;
+      margin-bottom: 5px;
+      transition: background 0.2s, color 0.2s;
   }
-  
-  .filter-section {
-      border-bottom: 1px solid #eee;
-      padding: 15px 0;
-  }
-  
-  .filter-section:last-child {
-      border-bottom: none;
+  .category-link.active, .category-link:hover {
+      background: #0d6efd;
+      color: #fff;
+      border-color: #0d6efd;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="products-page py-5">
-    <div class="container">
-        <div class="section-heading mb-4">
-            <h1 class="fw-bold">{{ title }}</h1>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
-                </ol>
-            </nav>
-        </div>
-        
-        <!-- Search and Filter Bar -->
-        <div class="search-filter-bar">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <form action="{{ url_for('main.products') }}" method="GET" class="d-flex">
-                        <input type="text" name="search" class="form-control form-control-lg me-3" 
-                               placeholder="ابحث عن منتج..." 
-                               value="{{ request.args.get('search', '') }}">
-                        <button class="btn btn-primary btn-lg" type="submit">
-                            <i class="fas fa-search me-2"></i>بحث
-                        </button>
-                    </form>
-                </div>
-                <div class="col-md-4 text-end">
-                    <button class="btn btn-outline-primary btn-lg" data-bs-toggle="modal" data-bs-target="#filterModal">
-                        <i class="fas fa-filter me-2"></i>تصفية
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Categories Strip -->
-        <div class="categories-strip py-3 px-2 bg-light border-bottom mb-4">
-            <div class="container">
-                <div class="d-flex flex-nowrap overflow-auto gap-3 align-items-center">
-                    <a href="{{ url_for('main.products') }}" 
-                       class="category-link btn {% if not request.args.get('category') %}btn-success{% else %}btn-outline-success{% endif %} rounded-pill px-4">
-                        الكل
-                    </a>
-                    <a href="{{ url_for('main.products', category='palestine') }}" 
-                       class="category-link btn {% if request.args.get('category') == 'palestine' %}btn-success{% else %}btn-outline-success{% endif %} rounded-pill px-4">
-                        فلسطين
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Products Grid -->
-        <div class="row">
-            {% if products.items %}
-            {% for product in products.items %}
-            <div class="col-md-4 mb-4">
-                <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="product-card-link">
-                    <div class="product-card card h-100 shadow-sm border-0">
-                        <div class="position-relative">
-                            <img src="{{ url_for('static', filename=product.image or 'images/placeholder.jpg') }}" 
-                                 class="card-img-top" alt="{{ product.name }}">
-                            {% if product.is_palestine %}
-                            <span class="badge bg-success position-absolute top-0 start-0 m-2">فلسطين</span>
-                            {% endif %}
-                        </div>
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title">{{ product.name }}</h5>
-                            <p class="card-text text-truncate">{{ product.description }}</p>
-                            <div class="d-flex justify-content-between align-items-center mt-auto">
-                                <span class="price fw-bold">{{ "{:,.2f}".format(product.price) }} جنيه</span>
-                                <span class="btn btn-sm btn-outline-secondary">التفاصيل</span>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            {% endfor %}
-            {% else %}
-            <div class="col-12">
-                <div class="alert alert-info">
-                    <h4 class="alert-heading text-center">لا توجد منتجات في هذه الفئة حالياً</h4>
-                    <p class="text-center">يرجى المحاولة مرة أخرى لاحقاً أو تصفح الفئات الأخرى</p>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-        
-        <!-- Pagination -->
-        {% if products.items %}
-        <nav aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% if products.has_prev %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.products', page=products.prev_num, category=request.args.get('category', ''), search=request.args.get('search', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), sort_by=request.args.get('sort_by', '')) }}">&laquo; السابق</a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">&laquo; السابق</span>
-                    </li>
-                {% endif %}
-
-                {% for page_num in products.iter_pages() %}
-                    {% if page_num %}
-                        <li class="page-item {% if products.page == page_num %}active{% endif %}">
-                            <a class="page-link" href="{{ url_for('main.products', page=page_num, category=request.args.get('category', ''), search=request.args.get('search', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), sort_by=request.args.get('sort_by', '')) }}">{{ page_num }}</a>
-                        </li>
-                    {% else %}
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                    {% endif %}
-                {% endfor %}
-
-                {% if products.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.products', page=products.next_num, category=request.args.get('category', ''), search=request.args.get('search', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), sort_by=request.args.get('sort_by', '')) }}">التالي &raquo;</a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">التالي &raquo;</span>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
+<main role="main" id="main-content">
+<!-- شريط الفئات -->
+<div class="categories-strip py-3 px-2 bg-light border-bottom mb-4">
+  <div class="container">
+    <div class="d-flex flex-nowrap overflow-auto gap-3 align-items-center">
+      <a href="{{ url_for('main.products') }}" class="category-link btn btn-outline-success rounded-pill px-4 {% if not current_filters.category %}active{% endif %}">الكل</a>
+      <a href="{{ url_for('main.products', category='palestine') }}" class="category-link btn btn-outline-dark rounded-pill px-4 {% if current_filters.category == 'palestine' %}active{% endif %}">فلسطين</a>
+      {% for cat in categories %}
+        <a href="{{ url_for('main.products', category=cat) }}" class="category-link btn btn-outline-secondary rounded-pill px-4 {% if current_filters.category == cat %}active{% endif %}">{{ cat }}</a>
+      {% endfor %}
     </div>
-</section>
-
-<!-- Filter Modal -->
-<div class="modal fade filter-modal" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">
-                    <i class="fas fa-filter me-2"></i>تصفية المنتجات
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ url_for('main.products') }}" method="GET">
-                <div class="modal-body">
-                    <!-- Category Filter -->
-                    <div class="filter-section">
-                        <h6 class="fw-bold mb-3">النوع</h6>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="category" id="category-all" value="" 
-                                   {% if not request.args.get('category') %}checked{% endif %}>
-                            <label class="form-check-label" for="category-all">
-                                الكل
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="category" id="category-palestine" value="palestine" 
-                                   {% if request.args.get('category') == 'palestine' %}checked{% endif %}>
-                            <label class="form-check-label" for="category-palestine">
-                                فلسطين
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Price Filter -->
-                    <div class="filter-section">
-                        <h6 class="fw-bold mb-3">السعر</h6>
-                        <div class="row">
-                            <div class="col-6">
-                                <label for="min_price" class="form-label">من</label>
-                                <input type="number" class="form-control" id="min_price" name="min_price" 
-                                       placeholder="0" value="{{ request.args.get('min_price', '') }}">
-                            </div>
-                            <div class="col-6">
-                                <label for="max_price" class="form-label">إلى</label>
-                                <input type="number" class="form-control" id="max_price" name="max_price" 
-                                       placeholder="1000" value="{{ request.args.get('max_price', '') }}">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Gender Filter (Disabled for now) -->
-                    <div class="filter-section">
-                        <h6 class="fw-bold mb-3">النوع <small class="text-muted">(غير مفعل حالياً)</small></h6>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="gender-men" disabled>
-                            <label class="form-check-label text-muted" for="gender-men">
-                                رجالي
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="gender-women" disabled>
-                            <label class="form-check-label text-muted" for="gender-women">
-                                نسائي
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="gender-kids" disabled>
-                            <label class="form-check-label text-muted" for="gender-kids">
-                                أطفال
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Preserve search parameter -->
-                    <input type="hidden" name="search" value="{{ request.args.get('search', '') }}">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-check me-2"></i>تطبيق التصفية
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+  </div>
 </div>
+<!-- نموذج البحث والتصفية -->
+<section class="product-filters mb-4">
+  <div class="container">
+    <form id="search-form" class="row g-2 align-items-end" role="search" aria-label="بحث المنتجات">
+      <div class="col-md-4">
+        <label for="search-input" class="form-label">بحث</label>
+        <input type="text" name="search" id="search-input" class="form-control" placeholder="ابحث باسم المنتج..." value="{{ current_filters.search }}" aria-label="بحث باسم المنتج">
+      </div>
+      <div class="col-md-3">
+        <label for="category-select" class="form-label">الفئة</label>
+        <select name="category" id="category-select" class="form-select" aria-label="تصفية حسب الفئة">
+          <option value="">كل الفئات</option>
+          {% for cat in categories %}
+            <option value="{{ cat }}" {% if current_filters.category == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="min-price" class="form-label">السعر الأدنى</label>
+        <input type="number" name="min_price" id="min-price" class="form-control" min="0" value="{{ current_filters.min_price }}" aria-label="السعر الأدنى">
+      </div>
+      <div class="col-md-2">
+        <label for="max-price" class="form-label">السعر الأعلى</label>
+        <input type="number" name="max_price" id="max-price" class="form-control" min="0" value="{{ current_filters.max_price }}" aria-label="السعر الأعلى">
+      </div>
+      <div class="col-md-1">
+        <button type="submit" class="btn btn-primary w-100" aria-label="بحث"><i class="fas fa-search"></i></button>
+      </div>
+    </form>
+  </div>
+</section>
+<!-- شبكة المنتجات -->
+<section class="product-grid-section py-4 bg-light">
+  <div class="container">
+    <h1 class="mb-4 fw-bold h2" style="font-family:'Poppins','Inter','Cairo',sans-serif;">{{ title }}</h1>
+    <div class="row g-4">
+      {% for product in products.items %}
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="product-card-link" aria-label="تفاصيل المنتج {{ product.name }}">
+          <div class="card product-card h-100 border-0 shadow-sm position-relative">
+            {% if product.is_palestine %}
+              <span class="product-badge">فلسطين</span>
+            {% endif %}
+            {% if product.discount_percentage and product.discount_percentage > 0 %}
+              <span class="product-badge" style="background:linear-gradient(90deg,#ff6b6b 60%,#f7b731 100%);left:auto;right:12px;">خصم {{ product.discount_percentage }}%</span>
+            {% endif %}
+            <img src="{{ url_for('static', filename=product.image or 'images/placeholder.jpg') }}" class="card-img-top" alt="صورة {{ product.name }}" loading="lazy">
+            <div class="card-body d-flex flex-column">
+              <h2 class="card-title h5">{{ product.name }}</h2>
+              <p class="card-text text-muted mb-2">{{ product.price }} جنيه</p>
+              <div class="mt-auto">
+                <button class="btn btn-details">التفاصيل <i class="fas fa-arrow-left ms-2"></i></button>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <!-- ترقيم الصفحات -->
+    <nav aria-label="ترقيم الصفحات" class="mt-4">
+      <ul class="pagination justify-content-center">
+        {% if products.has_prev %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('main.products', page=products.prev_num) }}" aria-label="الصفحة السابقة">&laquo;</a></li>
+        {% endif %}
+        {% for page_num in products.iter_pages() %}
+          {% if page_num %}
+            <li class="page-item {% if products.page == page_num %}active{% endif %}"><a class="page-link" href="{{ url_for('main.products', page=page_num) }}">{{ page_num }}</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if products.has_next %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('main.products', page=products.next_num) }}" aria-label="الصفحة التالية">&raquo;</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</section>
+</main>
 {% endblock %}

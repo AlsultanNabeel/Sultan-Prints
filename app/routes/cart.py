@@ -230,24 +230,6 @@ def checkout():
                 status='pending'
             )
             
-            # معالجة إيصال فودافون كاش إذا تم اختياره
-            if form.payment_method.data == 'vodafone_cash' and form.vodafone_receipt.data:
-                receipt_file = form.vodafone_receipt.data
-                if receipt_file.filename:
-                    filename = secure_filename(receipt_file.filename)
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    filename = f"vodafone_receipt_{timestamp}_{filename}"
-                    
-                    # إنشاء مجلد الإيصالات إذا لم يكن موجوداً
-                    receipts_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'receipts')
-                    os.makedirs(receipts_folder, exist_ok=True)
-                    
-                    file_path = os.path.join(receipts_folder, filename)
-                    receipt_file.save(file_path)
-                    
-                    # حفظ اسم الملف في قاعدة البيانات
-                    order.vodafone_receipt = f"receipts/{filename}"
-            
             try:
                 db.session.add(order)
                 db.session.commit()

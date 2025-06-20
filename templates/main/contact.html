@@ -1,168 +1,49 @@
 {% extends 'base.html' %}
 
-{% block title %}اتصل بنا - متجر البلايز المميزة{% endblock %}
+{% block title %}تواصل معنا - Sultan Prints{% endblock %}
 
 {% block content %}
-<section class="contact-page py-5">
-    <div class="container">
-        <div class="section-heading text-center mb-5">
-            <h1 class="fw-bold">اتصل بنا</h1>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb justify-content-center">
-                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">الرئيسية</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">اتصل بنا</li>
-                </ol>
-            </nav>
+<main role="main" id="main-content">
+<section class="contact-section py-5">
+  <div class="container">
+    <h1 class="fw-bold h3 mb-4">تواصل معنا</h1>
+    <div class="row g-4">
+      <div class="col-md-6">
+        <form method="post" class="contact-form" aria-label="نموذج التواصل">
+          {{ form.csrf_token }}
+          <div class="mb-3">
+            <label for="name" class="form-label">الاسم</label>
+            {{ form.name(class_="form-control", id="name", required=True, aria_required="true", aria_label="الاسم") }}
+          </div>
+          <div class="mb-3">
+            <label for="email" class="form-label">البريد الإلكتروني</label>
+            {{ form.email(class_="form-control", id="email", required=True, aria_required="true", aria_label="البريد الإلكتروني") }}
+          </div>
+          <div class="mb-3">
+            <label for="phone" class="form-label">رقم الهاتف</label>
+            {{ form.phone(class_="form-control", id="phone", aria_label="رقم الهاتف") }}
+          </div>
+          <div class="mb-3">
+            <label for="message" class="form-label">رسالتك</label>
+            {{ form.message(class_="form-control", id="message", required=True, aria_required="true", aria_label="رسالتك") }}
+          </div>
+          <button type="submit" class="btn btn-primary w-100" aria-label="إرسال الرسالة"><i class="fas fa-paper-plane me-2"></i> إرسال</button>
+        </form>
+      </div>
+      <div class="col-md-6">
+        <div class="contact-info bg-light rounded p-4 h-100">
+          <h2 class="h5 mb-3">معلومات التواصل</h2>
+          <ul class="list-unstyled mb-0">
+            <li><i class="fas fa-envelope me-2"></i> {{ settings.contact_email or 'info@sultanprints.com' }}</li>
+            <li><i class="fas fa-phone me-2"></i> {{ settings.phone_number or '+20 123 456 789' }}</li>
+            <li><i class="fas fa-map-marker-alt me-2"></i> {{ settings.address or 'مصر' }}</li>
+          </ul>
         </div>
-        
-        <div class="row">
-            <div class="col-lg-5 mb-4 mb-lg-0">
-                <div class="contact-info">
-                    <h2 class="mb-4">معلومات التواصل</h2>
-                    <p>{{ page.content | safe if page else 'نحن هنا للإجابة على جميع استفساراتك وتقديم المساعدة اللازمة. لا تتردد في التواصل معنا بإحدى الطرق التالية.' }}</p>
-                    
-                    <div class="contact-details mt-4">
-                        {% if settings.address %}
-                        <div class="d-flex mb-4">
-                            <div class="flex-shrink-0">
-                                <div class="contact-icon bg-primary text-white rounded-circle">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                </div>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h5>العنوان</h5>
-                                <p class="mb-0">{{ settings.address }}</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        {% if settings.phone_number %}
-                        <div class="d-flex mb-4">
-                            <div class="flex-shrink-0">
-                                <div class="contact-icon bg-primary text-white rounded-circle">
-                                    <i class="fas fa-phone"></i>
-                                </div>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h5>الهاتف</h5>
-                                <p class="mb-0" dir="ltr">{{ settings.phone_number }}</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        {% if settings.contact_email %}
-                        <div class="d-flex mb-4">
-                            <div class="flex-shrink-0">
-                                <div class="contact-icon bg-primary text-white rounded-circle">
-                                    <i class="fas fa-envelope"></i>
-                                </div>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h5>البريد الإلكتروني</h5>
-                                <p class="mb-0">{{ settings.contact_email }}</p>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="social-media mt-4">
-                        <h5 class="mb-3">تابعنا</h5>
-                        <div class="d-flex">
-                          {% if settings.facebook_url %}<a href="{{ settings.facebook_url or '#' }}" target="_blank" rel="noopener noreferrer" class="social-icon-contact"><i class="fab fa-facebook-f"></i></a>{% endif %}
-                          {% if settings.instagram_url %}<a href="{{ settings.instagram_url or '#' }}" target="_blank" rel="noopener noreferrer" class="social-icon-contact"><i class="fab fa-instagram"></i></a>{% endif %}
-                          {% if settings.twitter_url %}<a href="{{ settings.twitter_url or '#' }}" target="_blank" rel="noopener noreferrer" class="social-icon-contact"><i class="fab fa-twitter"></i></a>{% endif %}
-                          {% if settings.tiktok_url %}<a href="{{ settings.tiktok_url or '#' }}" target="_blank" rel="noopener noreferrer" class="social-icon-contact"><i class="fab fa-tiktok"></i></a>{% endif %}
-                           {% if settings.whatsapp_number %}<a href="https://wa.me/{{ settings.whatsapp_number }}" target="_blank" rel="noopener noreferrer" class="social-icon-contact"><i class="fab fa-whatsapp"></i></a>{% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-lg-7">
-                <div class="card shadow-sm">
-                    <div class="card-body p-4">
-                        <h2 class="card-title mb-4">أرسل لنا رسالة</h2>
-                        <form method="POST" action="{{ url_for('main.contact') }}" id="contactForm">
-                            {{ form.csrf_token }}
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="name" class="form-label">الاسم الكامل *</label>
-                                    <input type="text" class="form-control" id="name" name="name" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="email" class="form-label">البريد الإلكتروني *</label>
-                                    <input type="email" class="form-control" id="email" name="email" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="phone" class="form-label">رقم الهاتف</label>
-                                    <input type="tel" class="form-control" id="phone" name="phone">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="subject" class="form-label">الموضوع</label>
-                                    <select class="form-select" id="subject" name="subject">
-                                        <option value="general">استفسار عام</option>
-                                        <option value="order">استفسار عن طلب</option>
-                                        <option value="product">استفسار عن منتج</option>
-                                        <option value="complaint">شكوى</option>
-                                        <option value="suggestion">اقتراح</option>
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <label for="message" class="form-label">الرسالة *</label>
-                                    <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
-                                </div>
-                                <div class="col-12">
-                                    <button type="submit" class="btn btn-primary btn-lg w-100">إرسال الرسالة</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- FAQ Section -->
-        <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0"><i class="fas fa-question-circle me-2"></i>الأسئلة الشائعة</h3>
-                </div>
-                <div class="card-body">
-                    <div class="accordion" id="faqAccordion">
-                        {% for faq in faqs %}
-                        <div class="accordion-item border-0 mb-3">
-                            <h2 class="accordion-header" id="heading{{ faq.id }}">
-                                <button class="accordion-button collapsed bg-light text-dark fw-bold" 
-                                        type="button" 
-                                        data-bs-toggle="collapse" 
-                                        data-bs-target="#collapse{{ faq.id }}" 
-                                        aria-expanded="false" 
-                                        aria-controls="collapse{{ faq.id }}">
-                                    <i class="fas fa-question-circle text-primary me-3"></i>
-                                    {{ faq.question }}
-                                </button>
-                            </h2>
-                            <div id="collapse{{ faq.id }}" 
-                                 class="accordion-collapse collapse" 
-                                 aria-labelledby="heading{{ faq.id }}" 
-                                 data-bs-parent="#faqAccordion">
-                                <div class="accordion-body bg-white border-start border-primary border-3 ps-4">
-                                    <div class="d-flex align-items-start">
-                                        <i class="fas fa-info-circle text-info me-3 mt-1"></i>
-                                        <div class="text-muted lh-base">
-                                            {{ faq.answer }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 </section>
+</main>
 {% endblock %}
 
 {% block extra_css %}

@@ -234,9 +234,7 @@
                                     <div class="card-body">
                                         <p class="mb-2">
                                             <strong>طريقة الدفع:</strong> 
-                                            {% if order.payment_method == 'vodafone_cash' %}
-                                                <span class="badge bg-danger">فودافون كاش</span>
-                                            {% elif order.payment_method == 'cod' %}
+                                            {% if order.payment_method == 'cod' %}
                                                 <span class="badge bg-secondary">الدفع عند الاستلام</span>
                                             {% else %}
                                                 <span class="badge bg-info">{{ order.payment_method }}</span>

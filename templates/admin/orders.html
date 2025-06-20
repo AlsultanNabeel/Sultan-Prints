@@ -53,7 +53,6 @@
                                     <select class="form-select" id="payment-filter" name="payment_method">
                                         <option value="">الكل</option>
                                         <option value="cod" {% if request.args.get('payment_method') == 'cod' %}selected{% endif %}>الدفع عند الاستلام</option>
-                                        <option value="vodafone_cash" {% if request.args.get('payment_method') == 'vodafone_cash' %}selected{% endif %}>فودافون كاش</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
@@ -101,10 +100,10 @@
                                         <td>{{ order.created_at.strftime('%Y-%m-%d') }}</td>
                                         <td>{{ "{:,.2f}".format(order.total_amount) }} جنيه</td>
                                         <td>
-                                            {% if order.payment_method == 'vodafone_cash' %}
-                                            <span class="badge bg-danger">فودافون كاش</span>
-                                            {% else %}
+                                            {% if order.payment_method == 'cod' %}
                                             <span class="badge bg-secondary">الدفع عند الاستلام</span>
+                                            {% else %}
+                                            <span class="badge bg-info">{{ order.payment_method }}</span>
                                             {% endif %}
                                         </td>
                                         <td>
@@ -144,6 +143,7 @@
                                                 {% if not order.archived %}
                                                 <form method="POST" action="{{ url_for('admin.archive_order', order_id=order.id) }}" 
                                                       style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <button type="submit" class="btn btn-sm btn-outline-warning" 
                                                             onclick="return confirm('هل أنت متأكد من أرشفة هذا الطلب؟')">
                                                         <i class="fas fa-archive"></i> أرشفة
@@ -152,6 +152,7 @@
                                                 {% else %}
                                                 <form method="POST" action="{{ url_for('admin.unarchive_order', order_id=order.id) }}" 
                                                       style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <button type="submit" class="btn btn-sm btn-outline-success">
                                                         <i class="fas fa-undo"></i> إلغاء الأرشفة
                                                     </button>
@@ -177,6 +178,90 @@
         </div>
     </div>
 </section>
+
+{% if show_archived and orders|length > 0 %}
+<div class="card mt-4">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0"><i class="fas fa-archive me-2"></i> الطلبات المؤرشفة</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>الرقم المرجعي</th>
+                        <th>العميل</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th>الإجمالي</th>
+                        <th>طريقة الدفع</th>
+                        <th>الحالة</th>
+                        <th>حالة الدفع</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders if order.archived %}
+                    <tr>
+                        <td>{{ order.reference }}</td>
+                        <td>{{ order.customer_name }}</td>
+                        <td>{{ order.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ "{:,.2f}".format(order.total_amount) }} جنيه</td>
+                        <td>
+                            {% if order.payment_method == 'cod' %}
+                            <span class="badge bg-secondary">الدفع عند الاستلام</span>
+                            {% else %}
+                            <span class="badge bg-info">{{ order.payment_method }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.status == 'pending' %}
+                            <span class="badge bg-warning">قيد المعالجة</span>
+                            {% elif order.status == 'processing' %}
+                            <span class="badge bg-info">قيد التجهيز</span>
+                            {% elif order.status == 'printing' %}
+                            <span class="badge bg-primary">قيد الطباعة</span>
+                            {% elif order.status == 'shipped' %}
+                            <span class="badge bg-info">تم الشحن</span>
+                            {% elif order.status == 'out_for_delivery' %}
+                            <span class="badge bg-warning">خارج للتوصيل</span>
+                            {% elif order.status == 'delivered' %}
+                            <span class="badge bg-success">تم التسليم</span>
+                            {% elif order.status == 'cancelled' %}
+                            <span class="badge bg-danger">ملغي</span>
+                            {% elif order.status == 'refunded' %}
+                            <span class="badge bg-secondary">تم استرداد المبلغ</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.payment_status == 'paid' %}
+                            <span class="badge bg-success">مدفوع</span>
+                            {% elif order.payment_status == 'pending' %}
+                            <span class="badge bg-warning">قيد الانتظار</span>
+                            {% elif order.payment_status == 'cancelled' %}
+                            <span class="badge bg-danger">ملغي</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('admin.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> عرض التفاصيل
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.unarchive_order', order_id=order.id) }}" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-undo"></i> إلغاء الأرشفة
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

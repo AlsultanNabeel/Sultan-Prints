@@ -5,13 +5,14 @@ from dotenv import load_dotenv
 # تحميل المتغيرات البيئية من ملف .env
 load_dotenv()
 
-# DEBUG: طباعة المتغيرات البيئية
-print("=== ENVIRONMENT VARIABLES ===")
-print(f"SECRET_KEY: {os.environ.get('SECRET_KEY', 'NOT SET')[:20]}...")
-print(f"ADMIN_EMAIL: {os.environ.get('ADMIN_EMAIL', 'NOT SET')}")
-print(f"ADMIN_PASSWORD: {os.environ.get('ADMIN_PASSWORD', 'NOT SET')}")
-print(f"FLASK_ENV: {os.environ.get('FLASK_ENV', 'NOT SET')}")
-print("=============================")
+# DEBUG: طباعة المتغيرات البيئية (فقط في بيئة التطوير)
+if os.environ.get('FLASK_ENV', 'development') == 'development':
+    print("=== ENVIRONMENT VARIABLES ===")
+    print(f"SECRET_KEY: {os.environ.get('SECRET_KEY', 'NOT SET')[:20]}...")
+    print(f"ADMIN_EMAIL: {os.environ.get('ADMIN_EMAIL', 'NOT SET')}")
+    print(f"ADMIN_PASSWORD: {os.environ.get('ADMIN_PASSWORD', 'NOT SET')}")
+    print(f"FLASK_ENV: {os.environ.get('FLASK_ENV', 'NOT SET')}")
+    print("=============================")
 
 class Config:
     """

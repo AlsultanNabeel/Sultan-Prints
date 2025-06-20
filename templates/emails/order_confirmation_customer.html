@@ -152,9 +152,7 @@
                 <div class="info-row">
                     <span class="info-label">طريقة الدفع:</span>
                     <span class="info-value">
-                        {% if order.payment_method == 'vodafone_cash' %}
-                            فودافون كاش
-                        {% elif order.payment_method == 'cod' %}
+                        {% if order.payment_method == 'cod' %}
                             الدفع عند الاستلام
                         {% else %}
                             {{ order.payment_method }}

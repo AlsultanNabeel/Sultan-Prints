@@ -72,9 +72,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <strong>طريقة الدفع:</strong> 
-                                    {% if order.payment_method == 'vodafone_cash' %}
-                                        <span class="badge bg-danger">فودافون كاش</span>
-                                    {% elif order.payment_method == 'cod' %}
+                                    {% if order.payment_method == 'cod' %}
                                         <span class="badge bg-secondary">الدفع عند الاستلام</span>
                                     {% else %}
                                         <span class="badge bg-info">{{ order.payment_method }}</span>
@@ -144,38 +142,6 @@
                     </div>
                 </div>
 
-                <!-- Vodafone Cash Receipt -->
-                {% if order.payment_method == 'vodafone_cash' and order.vodafone_receipt %}
-                <div class="card mb-4 border-danger">
-                    <div class="card-header bg-danger text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-receipt me-2"></i>
-                            إيصال فودافون كاش
-                        </h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="mb-3">
-                            <strong>رقم المحفظة:</strong> <span class="badge bg-danger fs-6">01023820614</span>
-                        </div>
-                        <div class="receipt-image-container">
-                            <img src="{{ url_for('static', filename='uploads/' + order.vodafone_receipt) }}" 
-                                 alt="إيصال الدفع" class="img-fluid img-thumbnail" 
-                                 style="max-height: 400px; max-width: 100%;">
-                        </div>
-                        <div class="mt-3">
-                            <a href="{{ url_for('static', filename='uploads/' + order.vodafone_receipt) }}" 
-                               target="_blank" class="btn btn-primary me-2">
-                                <i class="fas fa-expand-arrows-alt me-2"></i> عرض الصورة بحجم كامل
-                            </a>
-                            <a href="{{ url_for('static', filename='uploads/' + order.vodafone_receipt) }}" 
-                               download class="btn btn-success">
-                                <i class="fas fa-download me-2"></i> تحميل الإيصال
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-                
                 <!-- Order Items -->
                 <div class="card mb-4 border-primary">
                     <div class="card-header bg-primary text-white">

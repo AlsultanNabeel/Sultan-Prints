@@ -73,7 +73,7 @@
                                     <label for="{{ form.expiration_date.id }}" class="form-label">
                                         {{ form.expiration_date.label }}
                                     </label>
-                                    {{ form.expiration_date(class="form-control", type="datetime-local") }}
+                                    {{ form.expiration_date(class="form-control", type="date", value=form.expiration_date.data.strftime('%Y-%m-%d') if form.expiration_date.data else '') }}
                                     {% if form.expiration_date.errors %}
                                         <div class="invalid-feedback d-block">
                                             {% for error in form.expiration_date.errors %}

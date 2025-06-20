@@ -33,15 +33,7 @@
                             <div class="row mb-2">
                                 <div class="col-md-4 fw-bold">طريقة الدفع:</div>
                                 <div class="col-md-8">
-                                    {% if order.payment_method == 'vodafone_cash' %}
-                                        <span class="badge bg-danger">فودافون كاش</span>
-                                        <div class="mt-2">
-                                            <small class="text-muted">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                تم رفع إيصال الدفع بنجاح. سنقوم بمراجعته وتأكيد الطلب قريباً.
-                                            </small>
-                                        </div>
-                                    {% elif order.payment_method == 'cash_on_delivery' or order.payment_method == 'cod' %}
+                                    {% if order.payment_method == 'cod' or order.payment_method == 'cash_on_delivery' %}
                                         <span class="badge bg-secondary">الدفع عند الاستلام</span>
                                     {% else %}
                                         <span class="badge bg-info">{{ order.payment_method }}</span>

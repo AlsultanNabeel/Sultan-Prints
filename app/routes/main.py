@@ -247,10 +247,8 @@ def track_order():
 @main.route('/setup')
 def setup():
     # منع الوصول في بيئة الإنتاج
-    if not current_app.debug:
-        current_app.logger.warning(f"Attempted access to /setup in production mode from IP: {request.remote_addr}")
-        return abort(404)  # إخفاء المسار تماماً في الإنتاج
-        
+    if current_app.config.get('FLASK_ENV') == 'production':
+        return redirect(url_for('main.index'))
     # تطلب كلمة مرور أو توكن أمان إضافي حتى في وضع التطوير
     setup_token = request.args.get('token')
     if setup_token != current_app.config.get('SETUP_SECRET_KEY'):

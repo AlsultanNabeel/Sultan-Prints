@@ -36,6 +36,7 @@
 {% endblock %}
 
 {% block content %}
+<main role="main" id="main-content">
 <!-- Hero Section -->
 {% set hero_bg_url = url_for('static', filename='images/hero-bg.png') %}
 {% if hero_image %}
@@ -46,7 +47,7 @@
         <div class="hero-text-container">
             <h1 class="display-4 fw-bold">{{ settings.hero_title or 'أطلق العنان لإبداعك' }}</h1>
             <p class="lead my-3">{{ settings.hero_subtitle or 'صمم تيشيرتك الخاص أو اختر من بين مجموعتنا المميزة' }}</p>
-            <a href="{{ url_for('main.products') }}" class="btn btn-success btn-lg px-5 py-2">{{ settings.hero_button_text or 'تسوق الآن' }}</a>
+            <a href="{{ url_for('main.products') }}" class="btn btn-success btn-lg px-5 py-2" aria-label="تصفح المنتجات المميزة">{{ settings.hero_button_text or 'تسوق الآن' }}</a>
         </div>
     </div>
 </section>
@@ -89,10 +90,10 @@
     <div class="row g-4">
       {% for product in products %}
       <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-        <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="product-card-link">
+        <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="product-card-link" aria-label="تفاصيل المنتج {{ product.name }}">
           <div class="card product-card h-100 border-0 shadow-sm">
             <div class="position-relative">
-              <img src="{{ url_for('static', filename=product.image or 'images/placeholder.jpg') }}" class="card-img-top" alt="{{ product.name }}">
+              <img src="{{ url_for('static', filename=product.image or 'images/placeholder.jpg') }}" class="card-img-top" alt="صورة {{ product.name }}" loading="lazy">
               {% if product.is_palestine %}
               <span class="badge bg-success position-absolute top-0 start-0 m-2">فلسطين</span>
               {% endif %}
@@ -131,16 +132,18 @@
                 <p class="mb-0">احصل على آخر العروض والتخفيضات مباشرة إلى بريدك الإلكتروني</p>
             </div>
             <div class="col-md-6">
-                <form class="newsletter-form d-flex" id="newsletterForm">
-                    <input type="email" class="form-control me-2" placeholder="بريدك الإلكتروني" id="newsletterEmail" required>
-                    <button type="submit" class="btn btn-light" id="newsletterSubmit">
+                <form class="newsletter-form d-flex" id="newsletterForm" aria-label="نموذج الاشتراك في النشرة البريدية">
+                    <label for="newsletterEmail" class="visually-hidden">البريد الإلكتروني</label>
+                    <input type="email" class="form-control me-2" placeholder="بريدك الإلكتروني" id="newsletterEmail" required aria-required="true" aria-describedby="newsletterHelp">
+                    <button type="submit" class="btn btn-light" id="newsletterSubmit" aria-label="اشترك في النشرة البريدية">
                         <span class="btn-text">اشترك</span>
                         <span class="btn-loading d-none">
                             <i class="fas fa-spinner fa-spin me-2"></i>جاري...
                         </span>
                     </button>
                 </form>
-                <div id="newsletterMessage" class="mt-2"></div>
+                <div id="newsletterHelp" class="form-text text-white-50">لن نرسل لك أي رسائل مزعجة.</div>
+                <div id="newsletterMessage" class="mt-2" aria-live="polite"></div>
             </div>
         </div>
     </div>

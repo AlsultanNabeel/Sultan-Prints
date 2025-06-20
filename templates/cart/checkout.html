@@ -132,43 +132,6 @@
                                         </div>
                                     </div>
                                 </label>
-
-                                <!-- Vodafone Cash -->
-                                <label for="payment-vodafone" class="payment-option" id="vodafone-option">
-                                    {{ form.payment_method(class="form-check-input", type="radio", id="payment-vodafone", value="vodafone_cash") }}
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-wallet fa-2x me-3 text-danger"></i>
-                                        <div>
-                                            <h6 class="mb-0 fw-bold">فودافون كاش</h6>
-                                            <p class="text-muted mb-0 small">تحويل المبلغ إلى محفظتنا ورفع صورة الإيصال.</p>
-                                        </div>
-                                    </div>
-                                    <div class="payment-details" id="vodafone-details">
-                                        <div class="alert alert-info">
-                                            <h6 class="alert-heading">
-                                                <i class="fas fa-info-circle me-2"></i>
-                                                خطوات الدفع بفودافون كاش:
-                                            </h6>
-                                            <ol class="mb-0">
-                                                <li>تحويل المبلغ الإجمالي إلى الرقم: <strong class="text-danger">01023820614</strong></li>
-                                                <li>التأكد من وصول التحويل بنجاح</li>
-                                                <li>رفع صورة إيصال الدفع أدناه</li>
-                                                <li>الضغط على "تأكيد الطلب الآن"</li>
-                                            </ol>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="vodafone_receipt" class="form-label fw-bold">
-                                                <i class="fas fa-upload me-2"></i>
-                                                رفع صورة إيصال الدفع
-                                            </label>
-                                            {{ form.vodafone_receipt(class="form-control", id="vodafone_receipt", accept="image/*") }}
-                                            <div class="form-text">
-                                                <i class="fas fa-exclamation-triangle text-warning me-1"></i>
-                                                يجب أن تكون الصورة واضحة وتظهر تفاصيل التحويل والرقم المرجعي
-                                            </div>
-                                        </div>
-                                    </div>
-                                </label>
                             </div>
                         </div>
                     </div>
@@ -330,28 +293,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const finalTotalElem = document.getElementById('final-total');
     const productsTotal = parseFloat("{{ products_total|round(2) }}");
 
-    function updateTotals(deliveryFee) {
-        let total = productsTotal + deliveryFee;
-        if (total < 0) total = 0;
+    let deliveryFee = 0;
+    let discountAmount = 0;
+
+    function updateTotals() {
+        let subtotal = productsTotal + deliveryFee;
+        let final = subtotal - discountAmount;
+        if (final < 0) final = 0;
         shippingCostElem.textContent = deliveryFee.toFixed(2) + ' جنيه';
-        finalTotalElem.textContent = total.toFixed(2) + ' جنيه';
+        document.getElementById('discountAmount').textContent = discountAmount > 0 ? '-' + discountAmount.toFixed(2) + ' جنيه' : '0.00 جنيه';
+        finalTotalElem.textContent = final.toFixed(2) + ' جنيه';
+        document.getElementById('discountRow').style.display = discountAmount > 0 ? 'table-row' : 'none';
     }
 
-    // تعيين رسوم التوصيل الافتراضية عند تحميل الصفحة
-    if (governorateSelect && governorateSelect.value) {
-        const govId = governorateSelect.value;
-        fetch(`/cart/get_delivery_fee/${govId}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.delivery_fee !== undefined) {
-                    updateTotals(parseFloat(data.delivery_fee));
-                }
-            });
-    } else {
-        // إذا لم يتم اختيار محافظة، عرض رسوم افتراضية
-        updateTotals(0);
-    }
-
+    // عند تغيير المحافظة
     if (governorateSelect) {
         governorateSelect.addEventListener('change', function() {
             const govId = this.value;
@@ -360,22 +315,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(res => res.json())
                     .then(data => {
                         if (data.delivery_fee !== undefined) {
-                            updateTotals(parseFloat(data.delivery_fee));
+                            deliveryFee = parseFloat(data.delivery_fee);
+                            updateTotals();
                         }
                     });
             } else {
-                updateTotals(0);
+                deliveryFee = 0;
+                updateTotals();
             }
         });
     }
 
-    // معالجة أكواد الخصم
+    // عند تطبيق كود الخصم
     const promoCodeInput = document.getElementById('promoCode');
     const applyPromoBtn = document.getElementById('applyPromoCode');
     const promoCodeMessage = document.getElementById('promoCodeMessage');
-    const discountRow = document.getElementById('discountRow');
-    const discountAmount = document.getElementById('discountAmount');
-    const finalTotal = document.getElementById('final-total');
 
     if (applyPromoBtn) {
         applyPromoBtn.addEventListener('click', function() {
@@ -396,23 +350,13 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    discountAmount = data.data.discount_amount;
+                    updateTotals();
                     promoCodeMessage.textContent = data.message;
                     promoCodeMessage.className = 'form-text text-success';
-                    
-                    // عرض الخصم
-                    discountRow.style.display = 'table-row';
-                    discountAmount.textContent = `-${data.data.discount_amount.toFixed(2)} جنيه`;
-                    
-                    // تحديث الإجمالي النهائي
-                    const currentTotal = parseFloat(finalTotal.textContent.replace(' جنيه', ''));
-                    const newTotal = data.data.final_amount;
-                    finalTotal.textContent = `${newTotal.toFixed(2)} جنيه`;
-                    
-                    // تعطيل حقل الكود وزر التطبيق
                     promoCodeInput.disabled = true;
                     applyPromoBtn.disabled = true;
                     applyPromoBtn.innerHTML = '<i class="fas fa-check"></i> تم التطبيق';
-                    
                 } else {
                     promoCodeMessage.textContent = data.message;
                     promoCodeMessage.className = 'form-text text-danger';
@@ -426,48 +370,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // إزالة كود الخصم
-    function removePromoCode() {
-        fetch('/cart/remove-promocode', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `csrf_token={{ csrf_token() }}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // إخفاء الخصم
-                discountRow.style.display = 'none';
-                
-                // إعادة تعيين الإجمالي
-                const newTotal = data.data.final_amount;
-                finalTotal.textContent = `${newTotal.toFixed(2)} جنيه`;
-                
-                // إعادة تفعيل حقل الكود
-                promoCodeInput.disabled = false;
-                applyPromoBtn.disabled = false;
-                applyPromoBtn.innerHTML = '<i class="fas fa-tag"></i> تطبيق';
-                
-                // مسح الرسائل
-                promoCodeMessage.textContent = '';
-                promoCodeMessage.className = 'form-text';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    }
-
-    // إضافة زر إزالة كود الخصم إذا كان مطبقاً
-    if (promoCodeInput && promoCodeInput.disabled) {
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'btn btn-outline-danger btn-sm ms-2';
-        removeBtn.innerHTML = '<i class="fas fa-times"></i> إزالة';
-        removeBtn.onclick = removePromoCode;
-        applyPromoBtn.parentNode.appendChild(removeBtn);
+    // عند تحميل الصفحة، عيّن القيم الافتراضية
+    if (governorateSelect && governorateSelect.value) {
+        const govId = governorateSelect.value;
+        fetch(`/cart/get_delivery_fee/${govId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.delivery_fee !== undefined) {
+                    deliveryFee = parseFloat(data.delivery_fee);
+                    updateTotals();
+                }
+            });
+    } else {
+        deliveryFee = 0;
+        updateTotals();
     }
 });
 </script>
