@@ -62,3 +62,4 @@ importlib_metadata==8.7.0
 tomli==2.2.1
 zipp==3.23.0
 dnspython==2.7.0
+pytz
