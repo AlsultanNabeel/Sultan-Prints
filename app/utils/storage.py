@@ -36,19 +36,26 @@ class SpacesStorage:
         self.region_name = app.config.get('SPACES_REGION', 'fra1')
         self.endpoint_url = f'https://{self.region_name}.digitaloceanspaces.com'
         
-        self.client = boto3.client('s3',
-            region_name=self.region_name,
-            endpoint_url=self.endpoint_url,
-            aws_access_key_id=app.config.get('SPACES_KEY'),
-            aws_secret_access_key=app.config.get('SPACES_SECRET')
-        )
-        
+        # لا تقم بالتهيئة إذا لم تكن المفاتيح موجودة (للبيئة المحلية)
+        if not app.config.get('SPACES_KEY') or not app.config.get('SPACES_SECRET'):
+            logger.warning("SPACES keys not found. Skipping DigitalOcean Spaces initialization.")
+            self.client = None
+            return
+
         logger.info(f"تم تهيئة SpacesStorage بنجاح - المنطقة: {self.region_name}, البكت: {self.bucket_name}")
 
     def save_image(self, file, folder='designs'):
         """حفظ الصورة في DigitalOcean Spaces"""
-        if not file:
+        if not file or not self.bucket_name:
             return None
+
+        # إنشاء client جديد ومؤقت لكل عملية رفع لضمان العزل
+        s3_client = boto3.client('s3',
+            region_name=self.region_name,
+            endpoint_url=self.endpoint_url,
+            aws_access_key_id=current_app.config.get('SPACES_KEY'),
+            aws_secret_access_key=current_app.config.get('SPACES_SECRET')
+        )
 
         try:
             # إنشاء اسم فريد للملف
@@ -76,8 +83,8 @@ class SpacesStorage:
             # المسار الكامل في Spaces
             spaces_path = f"uploads/{folder}/{picture_fn}"
             
-            # رفع الملف إلى Spaces
-            self.client.upload_fileobj(
+            # رفع الملف إلى Spaces باستخدام الـ client المؤقت
+            s3_client.upload_fileobj(
                 img_byte_arr,
                 self.bucket_name,
                 spaces_path,
