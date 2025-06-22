@@ -2,7 +2,7 @@ import os
 from mailersend import emails
 from flask import current_app, render_template
 
-def send_email_mailerlite(recipient_email, subject, template, **kwargs):
+def send_email(recipient_email, subject, template, **kwargs):
     """
     Custom function to send email using MailerSend for transactional emails.
     """
