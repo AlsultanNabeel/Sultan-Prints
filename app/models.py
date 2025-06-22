@@ -50,8 +50,8 @@ class Product(db.Model):
     description = db.Column(db.Text, nullable=False)
     price = db.Column(db.Float, nullable=False)
     image = db.Column(db.String(255), nullable=True)
-    sizes = db.Column(db.String(255))
-    colors = db.Column(db.String(255))
+    _sizes = db.Column('sizes', db.String(255))
+    _colors = db.Column('colors', db.String(255))
     features = db.Column(db.Text, nullable=True)
     material = db.Column(db.String(120))
     featured = db.Column(db.Boolean, default=False)
@@ -63,6 +63,36 @@ class Product(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     status = db.Column(db.String(32), default='pending')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    @property
+    def sizes(self):
+        if self._sizes:
+            try:
+                return json.loads(self._sizes)
+            except json.JSONDecodeError:
+                return []
+        return []
+
+    @sizes.setter
+    def sizes(self, value):
+        if isinstance(value, list):
+            self._sizes = json.dumps(value)
+        elif isinstance(value, str):
+            # If it's already a JSON string, just store it
+            self._sizes = value
+
+    @property
+    def colors(self):
+        if self._colors:
+            return [color.strip() for color in self._colors.split(',') if color.strip()]
+        return []
+
+    @colors.setter
+    def colors(self, value):
+        if isinstance(value, list):
+            self._colors = ','.join(value)
+        elif isinstance(value, str):
+            self._colors = value
 
 class Governorate(db.Model):
     """نموذج المحافظات"""

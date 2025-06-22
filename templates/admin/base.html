@@ -43,22 +43,3 @@
     {% block scripts %}{% endblock %}
 </body>
 </html>
-
-<!-- Nav Item - Orders -->
-<li class="nav-item">
-    <a class="nav-link" href="{{ url_for('admin.orders') }}">
-        <i class="fas fa-shopping-cart"></i>
-        <span>الطلبات</span>
-    </a>
-</li>
-
-<!-- Nav Item - Promo Codes -->
-<li class="nav-item">
-    <a class="nav-link" href="{{ url_for('admin.promocodes') }}">
-        <i class="fas fa-tags"></i>
-        <span>أكواد الخصم</span>
-    </a>
-</li>
-
-<!-- Nav Item - Products -->
-{% endblock %}

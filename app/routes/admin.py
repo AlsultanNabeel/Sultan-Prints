@@ -193,8 +193,8 @@ def edit_product(product_id):
         product.description = form.description.data
         product.price = form.price.data
         product.features = form.features.data
-        product.sizes = json.dumps(form.sizes.data)
-        product.colors = ','.join(form.colors.data)  # Store as comma-separated string
+        product.sizes = form.sizes.data # The setter in the model will handle JSON conversion
+        product.colors = form.colors.data # The setter in the model will handle string conversion
         product.material = form.material.data
         product.featured = form.featured.data
         product.in_stock = form.in_stock.data  # تحديث حالة "متوفر في المخزون"
@@ -203,20 +203,13 @@ def edit_product(product_id):
         db.session.commit()
         flash('تم تحديث المنتج بنجاح', 'success')
         return redirect(url_for('admin.products'))
-    # فك الـ JSON في بايثون قبل تمريرها للقالب
-    try:
-        form.sizes.data = json.loads(product.sizes) if product.sizes else []
-    except Exception:
-        form.sizes.data = []
-    try:
-        form.colors.data = product.colors.split(',') if product.colors else []  # Split comma-separated string
-    except Exception:
-        form.colors.data = []
-    return render_template('admin/edit_product.html', form=form, product=product, sizes=form.sizes.data, colors=form.colors.data)
+
+    # The properties in the model now handle the conversion, so we don't need to manually load data.
+    # The form is initialized with the product object, and WTForms will access the properties.
+    return render_template('admin/edit_product.html', form=form, product=product)
 
 @admin.route('/admin/delete_product/<int:product_id>', methods=['POST'])
 @admin_login_required
-@csrf.exempt  # إعفاء هذا المسار من التحقق من CSRF
 def delete_product(product_id):
     product = Product.query.get_or_404(product_id)
     
@@ -594,8 +587,8 @@ def edit_faq(faq_id):
 
 @admin.route('/admin/faqs/delete/<int:faq_id>', methods=['POST'])
 @admin_login_required
-@csrf.exempt  # إعفاء هذا المسار من التحقق من CSRF
 def delete_faq(faq_id):
+    """حذف سؤال شائع"""
     faq = FAQ.query.get_or_404(faq_id)
     db.session.delete(faq)
     db.session.commit()
@@ -654,8 +647,9 @@ def edit_governorate(gov_id):
 
 @admin.route('/admin/governorates/delete/<int:gov_id>', methods=['POST'])
 @admin_login_required
-@csrf.exempt  # إعفاء هذا المسار من التحقق من CSRF
 def delete_governorate(gov_id):
+    """حذف محافظة"""
+    # التحقق من أن المحافظة غير مرتبطة بأي طلبات
     governorate = Governorate.query.get_or_404(gov_id)
     try:
         db.session.delete(governorate)

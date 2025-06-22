@@ -161,8 +161,7 @@ class ProductionConfig(Config):
                 fromaddr=app.config.get('MAIL_DEFAULT_SENDER', 'error-monitor@smtp.gmail.com'),
                 toaddrs=[app.config.get('ADMIN_EMAIL')],
                 subject='Sultan Prints Failure',
-                credentials=auth,
-                secure=())
+                credentials=auth)
             mail_handler.setLevel(logging.ERROR)
             app.logger.addHandler(mail_handler)
 
