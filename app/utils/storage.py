@@ -38,6 +38,10 @@ class SpacesStorage:
         else:
             logger.info(f"SpacesStorage initialized for bucket '{self.bucket_name}' in region '{self.region_name}'.")
 
+    def is_configured(self):
+        """Check if all necessary Spaces credentials are set."""
+        return all([self.bucket_name, self.region_name, self.cdn_domain])
+
     def _get_s3_client(self):
         """ينشئ عميل S3 جديد ومؤقت لضمان العزل بين الطلبات."""
         if not all([self.bucket_name, self.region_name]):

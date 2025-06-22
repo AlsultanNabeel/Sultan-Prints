@@ -157,11 +157,11 @@ def add_product():
             description=form.description.data,
             price=form.price.data,
             features=form.features.data,
-            sizes=json.dumps(form.sizes.data),
-            colors=','.join(form.colors.data),  # Store as comma-separated string
+            sizes=form.sizes.data,  # Setter in model handles conversion
+            colors=form.colors.data,  # Setter in model handles conversion
             material=form.material.data,
             featured=form.featured.data,
-            in_stock=form.in_stock.data,  # حفظ حالة "متوفر في المخزون"
+            in_stock=form.in_stock.data,
             category=form.category.data,
             is_palestine=form.is_palestine.data,
             image=image_filename  # حفظ اسم الصورة

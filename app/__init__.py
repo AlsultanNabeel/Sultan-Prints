@@ -2,7 +2,7 @@ import os
 from flask import Flask, session, request, redirect
 from config import Config
 from .extensions import db, csrf
-from flask_migrate import Migrate, upgrade
+from flask_migrate import Migrate
 from flask_mail import Mail
 from markupsafe import escape, Markup
 from datetime import datetime
@@ -36,6 +36,7 @@ def nl2br(value):
 def create_app(config_name='default'):
     app = Flask(__name__, static_folder='../static')
     app.config.from_object(config[config_name])
+    config[config_name].init_app(app)
 
     # إعدادات أمان إضافية للتطبيق
     @app.after_request
@@ -60,22 +61,6 @@ def create_app(config_name='default'):
     mail.init_app(app)
     csrf.init_app(app)
 
-    # إعداد تسجيل الأخطاء
-    if not app.debug and not app.testing:
-        if not os.path.exists('logs'):
-            os.mkdir('logs')
-        file_handler = RotatingFileHandler('logs/sultan_prints.log',
-                                         maxBytes=10240,
-                                         backupCount=10)
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s '
-            '[in %(pathname)s:%(lineno)d]'
-        ))
-        file_handler.setLevel(logging.INFO)
-        app.logger.addHandler(file_handler)
-        app.logger.setLevel(logging.INFO)
-        app.logger.info('Sultan Prints startup')
-    
     # تفعيل نظام المراقبة الأمنية
     setup_security_monitoring(app)
 
