@@ -1,34 +1,33 @@
 # Core Flask & Dependencies
 Flask
 Werkzeug
-Jinja2==3.1.6
-itsdangerous
+Jinja2==3.1.2
+itsdangerous==2.1.2
 click==8.1.8
-blinker==1.9.0
-MarkupSafe==3.0.2
+MarkupSafe==2.1.1
 
 # Flask Extensions
 Flask-Login==0.6.3
-Flask-SQLAlchemy==3.1.1
+Flask-SQLAlchemy==2.0.25
 Flask-Migrate==4.1.0
 Flask-WTF==1.2.2
-Flask-Mail
+Flask-Mail==0.9.1
 
 # WSGI Server
 gunicorn==21.2.0
 
 # Database
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.9
 
 # Utilities
 python-dotenv
 boto3==1.38.37
 Pillow==11.2.1
 email_validator==2.2.0
-pytz
-requests
-redis
-stripe
+pytz==2024.1
+requests==2.31.0
+redis==5.0.1
+stripe==8.5.0
 
 # Email
-mailerlite==0.1.10
+mailersend==0.6.0
