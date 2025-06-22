@@ -24,7 +24,7 @@
 - **Forms**: Flask-WTF
 - **Email**: Flask-Mail
 - **File Upload**: Pillow, boto3 (DigitalOcean Spaces)
-- **Testing**: pytest, Playwright
+- **Testing**: pytest
 - **Production**: Gunicorn
 
 ## 📋 المتطلبات
@@ -183,20 +183,3 @@ docker run -d -p 8080:8080 --env-file .env sultan-prints
 ```bash
 python -m pytest tests/
 ```
-
-### اختبارات واجهة المستخدم (E2E) باستخدام Playwright
-لتشغيل اختبارات واجهة المستخدم، قم بتنفيذ:
-
-```bash
-# تثبيت متصفحات Playwright
-playwright install
-
-# تشغيل الاختبارات
-cd tests_e2e
-pytest
-
-# أو استخدام السكريبت التلقائي
-./run_e2e_tests.sh
-```
-
-لمزيد من المعلومات حول اختبارات Playwright، راجع [ملف الإرشادات](/tests_e2e/README.md).
