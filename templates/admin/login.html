@@ -1,27 +1,27 @@
 {% extends 'admin/base.html' %}
 
+{% block title %}تسجيل دخول المشرف{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-body p-5">
-                    <h2 class="text-center mb-4">تسجيل دخول الأدمن</h2>
-                    <form method="POST" action="">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <div class="mb-3">
-                            <label for="email" class="form-label">البريد الإلكتروني</label>
-                            <input type="email" name="email" class="form-control" id="email" required autofocus>
-                        </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">كلمة المرور</label>
-                            <input type="password" name="password" class="form-control" id="password" required>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">تسجيل الدخول</button>
-                        </div>
-                    </form>
-                </div>
+<div class="row justify-content-center align-items-center min-vh-100">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-lg">
+            <div class="card-body p-4 p-md-5">
+                <h3 class="text-center mb-4 fw-bold">تسجيل دخول المشرف</h3>
+                <form method="POST" action="{{ url_for('admin.login') }}">
+                    {{ form.csrf_token }}
+                    <div class="mb-3">
+                        <label for="email" class="form-label">البريد الإلكتروني</label>
+                        <input type="email" name="email" class="form-control form-control-lg" id="email" required autofocus>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">كلمة المرور</label>
+                        <input type="password" name="password" class="form-control form-control-lg" id="password" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">تسجيل الدخول</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

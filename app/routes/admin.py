@@ -89,28 +89,32 @@ def admin_home():
 
 @admin.route('/admin/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
+    form = AdminLoginForm()
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
+
         # الحصول على بيانات المشرف من متغيرات البيئة
         admin_email = current_app.config.get('ADMIN_EMAIL')
         admin_password = current_app.config.get('ADMIN_PASSWORD')
-        
+
         if not admin_email or not admin_password:
             current_app.logger.error("Admin credentials not configured")
-            flash('خطأ في إعدادات النظام', 'error')
-            return render_template('admin/login.html'), 500
-        
-        if email and password and email.lower() == admin_email.lower() and password == admin_password:
+            flash('خطأ في إعدادات النظام', 'danger')
+            return render_template('admin/login.html', form=form), 500
+
+        if email.lower() == admin_email.lower() and password == admin_password:
             session['admin_logged_in'] = True
             session['admin_last_active'] = datetime.utcnow()
             flash('تم تسجيل الدخول بنجاح', 'success')
-            return redirect(url_for('admin.admin_home'))
-        else:
-            flash('بيانات الدخول غير صحيحة', 'error')
             
-    return render_template('admin/login.html')
+            # Redirect to the next page if it exists, otherwise to the admin home
+            next_url = session.pop('next', None) or url_for('admin.admin_home')
+            return redirect(next_url)
+        else:
+            flash('بيانات الدخول غير صحيحة', 'danger')
+            
+    return render_template('admin/login.html', form=form)
 
 @admin.route('/admin/logout')
 def logout():
@@ -674,15 +678,15 @@ def add_promocode():
     form = PromoCodeForm()
     if form.validate_on_submit():
         try:
-            promo_code = PromoCode(
+            new_promocode = PromoCode(
                 code=form.code.data.upper(),
                 discount_percentage=form.discount_percentage.data,
                 max_uses=form.max_uses.data,
                 expiration_date=form.expiration_date.data,
                 is_active=form.is_active.data,
-                created_by_id=None
+                created_by_id=None # Admin user doesn't have a standard ID
             )
-            db.session.add(promo_code)
+            db.session.add(new_promocode)
             db.session.commit()
             flash('تم إضافة كود الخصم بنجاح!', 'success')
             return redirect(url_for('admin.promocodes'))
@@ -690,7 +694,7 @@ def add_promocode():
             db.session.rollback()
             flash(f'حدث خطأ أثناء إضافة كود الخصم: {str(e)}', 'danger')
     
-    return render_template('admin/add_promocode.html', form=form)
+    return render_template('admin/add_promocode.html', form=form, title='إضافة كود خصم')
 
 @admin.route('/admin/promocodes/edit/<int:promo_id>', methods=['GET', 'POST'])
 @admin_login_required

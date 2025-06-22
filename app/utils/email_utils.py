@@ -1,64 +1,40 @@
 import os
-from mailerlite import Client
-from flask import current_app
-from flask_mail import Message
-from app import mail
+from mailerlite import MailerLiteApi
+from flask import current_app, render_template
 
-def send_email(to_email, subject, body_html, sender_name='Sultan Prints'):
+def send_email_mailerlite(recipient_email, subject, template, **kwargs):
     """
-    Sends an email using the configured Flask-Mail instance.
-
-    Args:
-        to_email (str): The recipient's email address.
-        subject (str): The subject of the email.
-        body_html (str): The HTML content of the email.
-        sender_name (str): The name of the sender.
-
-    Returns:
-        bool: True if the email was sent successfully, False otherwise.
+    Custom function to send email using MailerLite.
     """
-    # التحقق من صحة المدخلات
-    if not to_email or not isinstance(to_email, str) or '@' not in to_email:
-        current_app.logger.error(f"Invalid email address: {to_email}")
-        return False
-    
-    if not subject or not body_html:
-        current_app.logger.error("Email subject or body is empty")
-        return False
-    
-    sender_email = current_app.config.get('MAIL_USERNAME')
-    if not sender_email:
-        current_app.logger.error("MAIL_USERNAME is not set in config. Cannot send email.")
-        return False
+    api_key = current_app.config.get('MAILERLITE_API_KEY')
+    if not api_key:
+        current_app.logger.error("MAILERLITE_API_KEY is not set.")
+        return
+
+    # Initialize MailerLite API
+    client = MailerLiteApi(api_key)
 
     try:
-        # إضافة توقيع للبريد الإلكتروني
-        email_signature = """
-        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
-            <p>مع تحيات فريق سلطان برينتس</p>
-            <p><a href="https://sultanprints.com">sultanprints.com</a></p>
-        </div>
-        """
-        
-        # إضافة رسالة عدم إعادة الإرسال للأمان
-        security_notice = """
-        <div style="font-size: 11px; color: #999; margin-top: 20px;">
-            <p>هذه رسالة آلية، يرجى عدم الرد عليها مباشرةً. إذا كان لديك أي استفسار، يرجى التواصل معنا من خلال نموذج الاتصال على موقعنا.</p>
-        </div>
-        """
-        
-        complete_html = f"{body_html}{email_signature}{security_notice}"
-        
-        msg = Message(
-            subject=subject,
-            recipients=[to_email],
-            html=complete_html,
-            sender=(sender_name, sender_email)
-        )
-        mail.send(msg)
-        current_app.logger.info(f"Email sent successfully to {to_email} with subject '{subject}'.")
-        return True
+        html_content = render_template(template + '.html', **kwargs)
+        text_content = render_template(template + '.txt', **kwargs)
+
+        # Email data
+        email_data = {
+            "to": [{
+                "email": recipient_email,
+            }],
+            "from": {
+                "email": current_app.config.get('MAIL_DEFAULT_SENDER', 'no-reply@yourdomain.com'),
+                "name": "Sultan Prints"
+            },
+            "subject": subject,
+            "html": html_content,
+            "text": text_content
+        }
+
+        # Send email via MailerLite API
+        client.emails.create(email_data)
+        current_app.logger.info(f"Email sent to {recipient_email} via MailerLite.")
+
     except Exception as e:
-        # Log the full error for debugging
-        current_app.logger.error(f"Error sending email to {to_email}: {e}", exc_info=True)
-        return False 
+        current_app.logger.error(f"Failed to send email to {recipient_email} via MailerLite: {e}")

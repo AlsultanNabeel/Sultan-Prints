@@ -61,7 +61,6 @@ class SpacesStorage:
             random_hex = secrets.token_hex(16)
             _, f_ext = os.path.splitext(secure_filename(file.filename))
             picture_fn = f"{random_hex}{f_ext}"
-            logger.info(f"DEBUG: Generated unique filename for upload: {picture_fn}")
             
             image = Image.open(file)
             image.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
@@ -83,14 +82,10 @@ class SpacesStorage:
                 ExtraArgs={'ACL': 'public-read', 'ContentType': file.content_type}
             )
             
-            final_url = ""
             if self.cdn_domain:
-                final_url = f"https://{self.cdn_domain}/{spaces_path}"
-            else:
-                final_url = f"https://{self.bucket_name}.{self.region_name}.cdn.digitaloceanspaces.com/{spaces_path}"
-
-            logger.info(f"DEBUG: Returning image URL from save_image: {final_url}")
-            return final_url
+                return f"{self.cdn_domain}/{spaces_path}"
+            
+            return f"https://{self.bucket_name}.{self.region_name}.cdn.digitaloceanspaces.com/{spaces_path}"
             
         except Exception as e:
             logger.error(f"Error saving image to Spaces: {str(e)}", exc_info=True)

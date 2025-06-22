@@ -1,156 +1,106 @@
-{% extends 'base.html' %}
+{% extends 'admin/base.html' %}
 
-{% block title %}إضافة كود خصم جديد - لوحة التحكم{% endblock %}
+{% block title %}{{ title or 'إضافة كود خصم جديد' }} - لوحة التحكم{% endblock %}
 
 {% block content %}
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-      <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
-      </div>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
-<section class="admin-add-promocode py-5">
-    <div class="container">
-        <div class="row">
-            <!-- Admin Sidebar -->
-            <div class="col-lg-3 mb-4">
-                {% include 'admin/_sidebar.html' %}
-            </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-bold">{{ title or 'إضافة كود خصم جديد' }}</h1>
+    <a href="{{ url_for('admin.promocodes') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-right me-2"></i>العودة إلى الأكواد
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">تفاصيل كود الخصم</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="promo-form">
+            {{ form.csrf_token }}
             
-            <!-- Admin Content -->
-            <div class="col-lg-9">
-                <div class="card">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">إضافة كود خصم جديد</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    {{ form.code.label(class="form-label") }}
+                    {{ form.code(class="form-control", placeholder="مثال: SUMMER2024") }}
+                    {% if form.code.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.code.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">سيتم تحويل الكود إلى أحرف كبيرة تلقائياً</div>
+                </div>
+                
+                <div class="col-md-6">
+                    {{ form.discount_percentage.label(class="form-label") }}
+                    <div class="input-group">
+                        {{ form.discount_percentage(class="form-control", placeholder="10") }}
+                        <span class="input-group-text">%</span>
                     </div>
-                    <div class="card-body">
-                        <form method="POST">
-                            {{ form.csrf_token }}
-                            
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="{{ form.code.id }}" class="form-label">
-                                        {{ form.code.label }}
-                                    </label>
-                                    {{ form.code(class="form-control", placeholder="مثال: SUMMER2024") }}
-                                    {% if form.code.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {% for error in form.code.errors %}
-                                                {{ error }}
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                    <div class="form-text">سيتم تحويل الكود إلى أحرف كبيرة تلقائياً</div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <label for="{{ form.discount_percentage.id }}" class="form-label">
-                                        {{ form.discount_percentage.label }}
-                                    </label>
-                                    <div class="input-group">
-                                        {{ form.discount_percentage(class="form-control", placeholder="10") }}
-                                        <span class="input-group-text">%</span>
-                                    </div>
-                                    {% if form.discount_percentage.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {% for error in form.discount_percentage.errors %}
-                                                {{ error }}
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <label for="{{ form.max_uses.id }}" class="form-label">
-                                        {{ form.max_uses.label }}
-                                    </label>
-                                    {{ form.max_uses(class="form-control", placeholder="100") }}
-                                    {% if form.max_uses.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {% for error in form.max_uses.errors %}
-                                                {{ error }}
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                    <div class="form-text">اتركه فارغاً للاستخدام غير المحدود</div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <label for="{{ form.expiration_date.id }}" class="form-label">
-                                        {{ form.expiration_date.label }}
-                                    </label>
-                                    {{ form.expiration_date(class="form-control", type="date", value=form.expiration_date.data.strftime('%Y-%m-%d') if form.expiration_date.data else '') }}
-                                    {% if form.expiration_date.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {% for error in form.expiration_date.errors %}
-                                                {{ error }}
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                
-                                <div class="col-12">
-                                    <div class="form-check">
-                                        {{ form.is_active(class="form-check-input") }}
-                                        <label class="form-check-label" for="{{ form.is_active.id }}">
-                                            {{ form.is_active.label }}
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mt-4">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save me-2"></i>حفظ كود الخصم
-                                </button>
-                                <a href="{{ url_for('admin.promocodes') }}" class="btn btn-outline-secondary">
-                                    <i class="fas fa-arrow-right me-2"></i>إلغاء
-                                </a>
-                            </div>
-                        </form>
+                    {% if form.discount_percentage.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.discount_percentage.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6">
+                    {{ form.max_uses.label(class="form-label") }}
+                    {{ form.max_uses(class="form-control", placeholder="100") }}
+                    {% if form.max_uses.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.max_uses.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">اتركه فارغاً للاستخدام غير المحدود.</div>
+                </div>
+                
+                <div class="col-md-6">
+                    {{ form.expiration_date.label(class="form-label") }}
+                    {{ form.expiration_date(class="form-control", type="date") }}
+                    {% if form.expiration_date.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.expiration_date.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        {{ form.is_active(class="form-check-input") }}
+                        {{ form.is_active.label(class="form-check-label") }}
                     </div>
                 </div>
             </div>
-        </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>حفظ كود الخصم
+                </button>
+                <a href="{{ url_for('admin.promocodes') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>إلغاء
+                </a>
+            </div>
+        </form>
     </div>
-</section>
-<script>
-document.querySelector('form').addEventListener('submit', function(e) {
-    var dateInput = document.querySelector('input[type="date"]');
-    if (!dateInput.value) {
-        e.preventDefault();
-        alert('يرجى تحديد تاريخ انتهاء الصلاحية');
-        dateInput.focus();
-        return false;
-    }
-    // تحقق أن التاريخ أكبر من اليوم (بتوقيت الجهاز)
-    var now = new Date();
-    var inputDate = new Date(dateInput.value);
-    // اجعل اليوم الحالي بدون وقت
-    now.setHours(0,0,0,0);
-    if (inputDate <= now) {
-        e.preventDefault();
-        alert('يجب أن يكون تاريخ الانتهاء بعد اليوم');
-        dateInput.focus();
-        return false;
-    }
-});
+</div>
+{% endblock %}
 
+{% block scripts %}
+<script>
 document.addEventListener('DOMContentLoaded', function() {
-    var forms = document.querySelectorAll('.needs-validation');
-    Array.prototype.slice.call(forms).forEach(function(form) {
+    const form = document.getElementById('promo-form');
+    if (form) {
         form.addEventListener('submit', function(event) {
-            if (!form.checkValidity()) {
+            let isValid = true;
+            // يمكنك إضافة أي تحقق إضافي هنا إذا لزم الأمر
+            // مثال: التحقق من أن نسبة الخصم بين 1 و 100
+            
+            if (!isValid) {
                 event.preventDefault();
                 event.stopPropagation();
             }
-            form.classList.add('was-validated');
-        }, false);
-    });
+        });
+    }
 });
 </script>
 {% endblock %} 
