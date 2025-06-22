@@ -25,6 +25,10 @@ python-dotenv
 boto3==1.38.37
 Pillow==11.2.1
 email_validator==2.2.0
+pytz
+requests
+redis
+stripe
 
 # Email
 mailerlite==0.1.10
