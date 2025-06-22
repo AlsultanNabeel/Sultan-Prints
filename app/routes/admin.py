@@ -10,9 +10,10 @@ from app.extensions import csrf
 from datetime import datetime, timedelta
 import json
 from werkzeug.utils import secure_filename
-from app.utils import allowed_file, log_event
+from app.utils import allowed_file, log_event, delete_image
 import shutil
 from flask_login import current_user
+from app.utils.storage import storage_manager
 
 admin = Blueprint('admin', __name__)
 
@@ -230,14 +231,9 @@ def delete_product(product_id):
             order_product.delete().where(order_product.c.product_id == product_id)
         )
         
-        # حذف ملف صورة المنتج إذا كان موجوداً
+        # حذف ملف صورة المنتج باستخدام الدالة الموحدة
         if product.image:
-            image_path = os.path.join(current_app.static_folder, product.image)
-            if os.path.exists(image_path):
-                try:
-                    os.remove(image_path)
-                except Exception as e:
-                    current_app.logger.warning(f"Could not delete product image {image_path}: {e}")
+            delete_image(product.image)
         
         # حذف المنتج نفسه
         db.session.delete(product)
@@ -250,6 +246,27 @@ def delete_product(product_id):
         current_app.logger.error(f"Error deleting product {product_id}: {e}")
     
     return redirect(url_for('admin.products'))
+
+@admin.route('/admin/receipt/<path:file_key>')
+@admin_login_required
+def serve_secure_receipt(file_key):
+    """
+    Generates a presigned URL for a private receipt and redirects to it.
+    """
+    try:
+        # Generate a presigned URL. This URL will be temporary.
+        url = storage_manager.get_presigned_url(file_key)
+        if url:
+            # Redirect the user to the presigned URL
+            return redirect(url)
+        else:
+            flash('تعذر إنشاء رابط آمن للإيصال.', 'danger')
+            # You might want to redirect to a more specific error page or back.
+            return redirect(request.referrer or url_for('admin.orders'))
+    except Exception as e:
+        current_app.logger.error(f"Error generating presigned URL for {file_key}: {e}", exc_info=True)
+        flash('حدث خطأ أثناء الوصول إلى الإيصال.', 'danger')
+        return redirect(request.referrer or url_for('admin.orders'))
 
 # إدارة التصاميم
 @admin.route('/admin/designs')

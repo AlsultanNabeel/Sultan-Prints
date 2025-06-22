@@ -51,7 +51,7 @@ class SpacesStorage:
             aws_secret_access_key=current_app.config.get('SPACES_SECRET')
         )
 
-    def save_image(self, file, folder='designs'):
+    def save_image(self, file, folder='designs', is_public=True):
         """حفظ الصورة في DigitalOcean Spaces باستخدام اتصال معزول."""
         s3_client = self._get_s3_client()
         if not file or not s3_client:
@@ -75,17 +75,22 @@ class SpacesStorage:
             
             spaces_path = f"uploads/{folder}/{picture_fn}"
             
+            acl_policy = 'public-read' if is_public else 'private'
+            
             s3_client.upload_fileobj(
                 img_byte_arr,
                 self.bucket_name,
                 spaces_path,
-                ExtraArgs={'ACL': 'public-read', 'ContentType': file.content_type}
+                ExtraArgs={'ACL': acl_policy, 'ContentType': file.content_type}
             )
             
-            if self.cdn_domain:
-                return f"{self.cdn_domain}/{spaces_path}"
+            if is_public:
+                if self.cdn_domain:
+                    return f"https://{self.cdn_domain}/{spaces_path}"
+                return f"https://{self.bucket_name}.{self.region_name}.cdn.digitaloceanspaces.com/{spaces_path}"
             
-            return f"https://{self.bucket_name}.{self.region_name}.cdn.digitaloceanspaces.com/{spaces_path}"
+            # For private files, return the path/key for later use in generating presigned URLs
+            return spaces_path
             
         except Exception as e:
             logger.error(f"Error saving image to Spaces: {str(e)}", exc_info=True)
@@ -111,6 +116,19 @@ class SpacesStorage:
         except Exception as e:
             logger.error(f"Error deleting image '{image_url}' from Spaces: {str(e)}", exc_info=True)
             return False
+
+    def get_presigned_url(self, object_name, expiration=3600):
+        """Generate a presigned URL to share an S3 object."""
+        s3_client = self._get_s3_client()
+        try:
+            response = s3_client.generate_presigned_url('get_object',
+                                                        Params={'Bucket': self.bucket_name,
+                                                                'Key': object_name},
+                                                        ExpiresIn=expiration)
+        except Exception as e:
+            logger.error(f"Error generating presigned URL for {object_name}: {e}", exc_info=True)
+            return None
+        return response
 
 spaces_storage = SpacesStorage()
 

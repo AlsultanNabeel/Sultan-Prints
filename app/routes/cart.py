@@ -6,7 +6,7 @@ import uuid, os, json
 from flask_wtf.file import FileAllowed
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from app.utils import get_or_create_cart, calculate_cart_total
+from app.utils import get_or_create_cart, calculate_cart_total, save_image
 from app.utils.email_utils import send_email
 from flask import current_app # Add this import for logging
 from flask_login import login_required
@@ -194,6 +194,19 @@ def checkout():
         form.governorate_id.choices = [('', 'اختر المحافظة')] + [(g.id, g.name) for g in governorates]
         
         if form.validate_on_submit():
+            
+            receipt_path = None
+            if form.payment_method.data == 'bank_transfer' and form.receipt.data:
+                try:
+                    receipt_path = save_image(form.receipt.data, folder='receipts', is_public=False)
+                    if not receipt_path:
+                        flash('حدث خطأ أثناء رفع الإيصال، يرجى المحاولة مرة أخرى.', 'danger')
+                        return render_template('cart/checkout.html', form=form, cart_total=calculate_cart_total(), governorates=governorates)
+                except Exception as e:
+                    current_app.logger.error(f"Receipt upload failed: {e}")
+                    flash('حدث خطأ فادح أثناء معالجة الإيصال.', 'danger')
+                    return render_template('cart/checkout.html', form=form, cart_total=calculate_cart_total(), governorates=governorates)
+
             # حساب المجموع الكلي للمنتجات
             products_total = sum(item.product.price * item.quantity for item in cart.items)
             
@@ -223,6 +236,7 @@ def checkout():
                 address=form.address.data,
                 delivery_fee=delivery_fee,
                 payment_method=form.payment_method.data,
+                payment_receipt_path=receipt_path,
                 total_amount=subtotal,
                 discount_amount=discount_amount,
                 final_amount=final_amount,

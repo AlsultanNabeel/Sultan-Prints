@@ -10,7 +10,7 @@
     {% block head_extra %}{% endblock %}
 </head>
 <body>
-    <div class="d-flex" id="wrapper">
+    <div class="d-flex {% if not session.get('admin_logged_in') %}justify-content-center align-items-center vh-100{% endif %}" id="wrapper">
         <!-- القائمة الجانبية تظهر فقط إذا كان المدير مسجلاً دخوله -->
         {% if session.get('admin_logged_in') %}
             {% include 'admin/_sidebar.html' %}
