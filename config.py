@@ -26,20 +26,12 @@ class Config:
     FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
     DEBUG = FLASK_ENV == 'development'
     
-    # إعدادات البريد الإلكتروني
-    MAIL_SERVER = 'smtp.gmail.com'
-    MAIL_PORT = 587
-    MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    # إعدادات البريد الإلكتروني (MailerSend فقط)
+    MAILERSEND_API_KEY = os.environ.get('MAILERSEND_API_KEY')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
-    MAIL_MAX_EMAILS = 10
-    MAIL_ASCII_ATTACHMENTS = False
-    MAIL_SUPPRESS_SEND = False
+    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
     
     # إعدادات المشرف
-    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
     
     # إعدادات DigitalOcean Spaces
@@ -135,35 +127,11 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     
-    # إعدادات البريد الإلكتروني للإنتاج
-    MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
-    MAIL_PORT = 587
-    
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
-        
         # إعدادات إضافية للإنتاج
-        import logging
-        from logging.handlers import SMTPHandler
-        
-        # إرسال أخطاء البريد الإلكتروني للمسؤول
-        if app.config.get('MAIL_SERVER'):
-            auth = None
-            if app.config.get('MAIL_USERNAME') or app.config.get('MAIL_PASSWORD'):
-                auth = (app.config.get('MAIL_USERNAME'),
-                       app.config.get('MAIL_PASSWORD'))
-            
-            mail_handler = SMTPHandler(
-                mailhost=(app.config.get('MAIL_SERVER'),
-                         app.config.get('MAIL_PORT')),
-                fromaddr=app.config.get('MAIL_DEFAULT_SENDER', 'error-monitor@smtp.gmail.com'),
-                toaddrs=[app.config.get('ADMIN_EMAIL')],
-                subject='Sultan Prints Failure',
-                credentials=auth)
-            mail_handler.setLevel(logging.ERROR)
-            app.logger.addHandler(mail_handler)
+        # تم حذف إعدادات SMTPHandler لأننا نستخدم MailerSend API فقط
 
 config = {
     'development': DevelopmentConfig,

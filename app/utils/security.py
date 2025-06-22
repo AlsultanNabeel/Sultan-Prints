@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 import os
 import json
+import requests
 
 def force_https():
     """تأكد من استخدام HTTPS"""
@@ -33,31 +34,38 @@ def log_security_event(event_type, details):
     with open(log_file, 'a') as f:
         f.write(json.dumps(log_entry) + '\n')
 
+def send_error_email(subject, html_content):
+    api_key = os.environ.get('MAILERSEND_API_KEY')
+    to = os.environ.get('ADMIN_EMAIL')
+    url = "https://api.mailersend.com/v1/email"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "from": {
+            "email": os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@sultanprints.studio'),
+            "name": "Sultan Prints Error Monitor"
+        },
+        "to": [{"email": to}],
+        "subject": subject,
+        "html": html_content
+    }
+    try:
+        requests.post(url, headers=headers, json=data, timeout=10)
+    except Exception as e:
+        pass  # لا ترسل استثناءات إضافية حتى لا تدخل في حلقة
+
 def monitor_errors():
-    """مراقبة الأخطاء وإرسال تنبيهات"""
     logger = logging.getLogger('error_monitor')
-    
     if not logger.handlers:
-        # إعداد تسجيل الأخطاء
         log_file = os.path.join(current_app.root_path, '..', 'logs', 'errors.log')
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
         ))
         logger.addHandler(file_handler)
-        
-        # إعداد إرسال البريد الإلكتروني للأخطاء الحرجة
-        if current_app.config.get('MAIL_SERVER'):
-            mail_handler = logging.handlers.SMTPHandler(
-                mailhost=(current_app.config['MAIL_SERVER'],
-                         current_app.config['MAIL_PORT']),
-                fromaddr=f"error-monitor@{current_app.config['MAIL_SERVER']}",
-                toaddrs=[current_app.config.get('ADMIN_EMAIL', 'admin@example.com')],
-                subject='خطأ حرج في تطبيق Sultan Prints'
-            )
-            mail_handler.setLevel(logging.ERROR)
-            logger.addHandler(mail_handler)
-    
+        logger.setLevel(logging.ERROR)
     return logger
 
 def error_handler(f):
@@ -69,16 +77,17 @@ def error_handler(f):
         except Exception as e:
             logger = monitor_errors()
             logger.error(f"Error in {f.__name__}: {str(e)}", exc_info=True)
-            
-            # تسجيل حدث أمان
+            # إرسال بريد تنبيه عبر MailerSend
+            send_error_email(
+                subject=f"خطأ في تطبيق سلطان برنتس: {f.__name__}",
+                html_content=f"<b>تفاصيل الخطأ:</b><br>{str(e)}"
+            )
             log_security_event('error', {
                 'function': f.__name__,
                 'error': str(e),
                 'args': str(args),
                 'kwargs': str(kwargs)
             })
-            
-            # إعادة توجيه المستخدم إلى صفحة الخطأ
             return current_app.error_handlers.get(500)(e)
     
     return decorated_function

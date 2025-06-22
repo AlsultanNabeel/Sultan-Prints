@@ -138,8 +138,8 @@ def product_detail(product_id):
     designs = Design.query.filter_by(is_default=True).all()
     
     try:
-        sizes = json.loads(product.sizes) if product.sizes else []
-    except (json.JSONDecodeError, TypeError):
+        sizes = product.sizes
+    except Exception:
         sizes = []
 
     # Prepare colors for the template
@@ -272,8 +272,8 @@ def product_quick_view(product_id):
     """API endpoint for quick product preview"""
     product = Product.query.get_or_404(product_id)
     try:
-        sizes = json.loads(product.sizes) if product.sizes else []
-    except (json.JSONDecodeError, TypeError):
+        sizes = product.sizes
+    except Exception:
         sizes = []
     
     colors = [c.strip() for c in (product.colors or '').split(',') if c.strip()]

@@ -46,7 +46,6 @@
         {% if request.endpoint == 'admin.login' %}
             <div class="login-container">
                 {% include '_alerts.html' %}
-                {% block content %}{% endblock %}
             </div>
         {% else %}
             <div class="container-fluid py-4">
