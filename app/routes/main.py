@@ -143,7 +143,7 @@ def product_detail(product_id):
         sizes = []
 
     # Prepare colors for the template
-    raw_colors = [c.strip() for c in (product.colors or '').split(',') if c.strip()]
+    raw_colors = product.colors # This is now a list from the model's property
     color_map = {
         'white': ('أبيض', '#FFFFFF'),
         'black': ('أسود', '#000000'),

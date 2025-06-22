@@ -44,17 +44,17 @@ def save_image(file, folder='designs', is_public=True):
         return None
 
     # Try saving to DigitalOcean Spaces if configured
-    if spaces_storage.bucket_name:
+    if spaces_storage.bucket_name and spaces_storage.is_configured():
         try:
+            # Rewind file in case it was read before
+            file.seek(0)
             image_url = spaces_storage.save_image(file, folder, is_public=is_public)
             if image_url:
                 log_event(f"Image uploaded successfully to Spaces: {image_url}", level='info')
                 return image_url
-            else:
-                log_event("Failed to upload image to Spaces, falling back to local storage.", level='warning')
         except Exception as e:
-            log_event(f"Error saving image to Spaces, falling back to local: {e}", level='error')
-            # Rewind file pointer after read attempt by spaces_storage
+            log_event(f"Error saving image to Spaces, falling back to local: {str(e)}", level='warning')
+            # Rewind file pointer after failed read attempt
             file.seek(0)
 
     # Fallback to local storage

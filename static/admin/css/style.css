@@ -1,0 +1,70 @@
+/* General Admin Styles */
+body {
+    background-color: #f8f9fa;
+}
+
+.admin-main-content .card {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.admin-main-content .card-header {
+    font-weight: bold;
+}
+
+/* Sidebar Styles */
+.admin-sidebar .nav-link {
+    color: #495057;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.admin-sidebar .nav-link i.fa-fw {
+    width: 1.5em;
+    text-align: center;
+}
+
+.admin-sidebar .nav-link:hover {
+    background-color: #e9ecef;
+    color: #0d6efd;
+}
+
+.admin-sidebar .nav-link.active {
+    background-color: #0d6efd;
+    color: #fff;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Login Page Specific Styles */
+body.is-login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.login-container {
+    max-width: 420px;
+    width: 100%;
+}
+
+.login-card {
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+.login-header {
+    background-color: #0d6efd;
+    color: white;
+    text-align: center;
+    padding: 1.5rem;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+}
+
+.login-header h2 {
+    margin-bottom: 0;
+} 
