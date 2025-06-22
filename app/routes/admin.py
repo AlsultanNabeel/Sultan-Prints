@@ -13,7 +13,7 @@ from werkzeug.utils import secure_filename
 from app.utils import allowed_file, log_event, delete_image
 import shutil
 from flask_login import current_user
-from app.utils.storage import storage_manager
+from app.utils.storage import spaces_storage
 
 admin = Blueprint('admin', __name__)
 
@@ -255,7 +255,7 @@ def serve_secure_receipt(file_key):
     """
     try:
         # Generate a presigned URL. This URL will be temporary.
-        url = storage_manager.get_presigned_url(file_key)
+        url = spaces_storage.get_presigned_url(file_key)
         if url:
             # Redirect the user to the presigned URL
             return redirect(url)
