@@ -17,7 +17,7 @@ Flask-Mail==0.9.1
 gunicorn==21.2.0
 
 # Database
-psycopg2-binary==2.9.9
+psycopg2-binary
 
 # Utilities
 python-dotenv
