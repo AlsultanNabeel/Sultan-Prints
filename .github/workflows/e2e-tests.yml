@@ -11,14 +11,28 @@ jobs:
     name: 'Playwright Tests'
     runs-on: ubuntu-latest
     
-    services:
-      app:
-        image: sultan-prints:latest
-        ports:
-          - 5000:5000
-    
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Build and run Docker container
+        run: |
+          docker build -t sultan-prints-test .
+          docker run -d -p 5000:8080 --name test-app sultan-prints-test
+
+      - name: Wait for app to be ready
+        run: |
+          echo "Waiting for app to start..."
+          sleep 10 # Give it a generous fixed wait time to start
+          for i in {1..30}; do
+            if curl -s http://localhost:5000/ > /dev/null; then
+              echo "App is up!"
+              break
+            fi
+            echo "Attempt $i: App not ready yet. Waiting 2s..."
+            sleep 2
+          done
+          # Final check
+          curl -f -s http://localhost:5000/ > /dev/null || (echo "App failed to start" && docker logs test-app && exit 1)
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -35,6 +49,15 @@ jobs:
         run: |
           cd tests_e2e
           pytest --html=report.html
+      
+      - name: Cleanup and show logs
+        if: always()
+        run: |
+          echo "Dumping container logs for debugging..."
+          docker logs test-app
+          echo "Stopping container..."
+          docker stop test-app
+          docker rm test-app
           
       - name: Upload test results
         if: always()
