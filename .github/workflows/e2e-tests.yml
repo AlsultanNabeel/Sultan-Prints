@@ -15,9 +15,51 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Build and run Docker container
+        env:
+          FLASK_ENV: "testing"
+          SECRET_KEY: "test-secret-key"
+          DATABASE_URL: "sqlite:///test.db"
+          ADMIN_EMAIL: "admin@test.com"
+          ADMIN_PASSWORD: "password"
+          SESSION_COOKIE_SECURE: "False"
+          MAILERLITE_API_KEY: "dummy-key"
+          MAIL_DEFAULT_SENDER: "sender@test.com"
+          SPACES_KEY: "dummy"
+          SPACES_SECRET: "dummy"
+          SPACES_BUCKET_NAME: "dummy"
+          SPACES_REGION: "dummy"
+          SPACES_CDN_DOMAIN: "dummy"
         run: |
-          docker build -t sultan-prints-test .
-          docker run -d -p 5000:8080 --name test-app sultan-prints-test
+          docker build --build-arg FLASK_ENV=${FLASK_ENV} \
+                       --build-arg SECRET_KEY=${SECRET_KEY} \
+                       --build-arg DATABASE_URL=${DATABASE_URL} \
+                       --build-arg ADMIN_EMAIL=${ADMIN_EMAIL} \
+                       --build-arg ADMIN_PASSWORD=${ADMIN_PASSWORD} \
+                       --build-arg SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE} \
+                       --build-arg MAILERLITE_API_KEY=${MAILERLITE_API_KEY} \
+                       --build-arg MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER} \
+                       --build-arg SPACES_KEY=${SPACES_KEY} \
+                       --build-arg SPACES_SECRET=${SPACES_SECRET} \
+                       --build-arg SPACES_BUCKET_NAME=${SPACES_BUCKET_NAME} \
+                       --build-arg SPACES_REGION=${SPACES_REGION} \
+                       --build-arg SPACES_CDN_DOMAIN=${SPACES_CDN_DOMAIN} \
+                       -t sultan-prints-test .
+          
+          docker run -d -p 5000:8080 \
+                     -e FLASK_ENV=${FLASK_ENV} \
+                     -e SECRET_KEY=${SECRET_KEY} \
+                     -e DATABASE_URL=${DATABASE_URL} \
+                     -e ADMIN_EMAIL=${ADMIN_EMAIL} \
+                     -e ADMIN_PASSWORD=${ADMIN_PASSWORD} \
+                     -e SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE} \
+                     -e MAILERLITE_API_KEY=${MAILERLITE_API_KEY} \
+                     -e MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER} \
+                     -e SPACES_KEY=${SPACES_KEY} \
+                     -e SPACES_SECRET=${SPACES_SECRET} \
+                     -e SPACES_BUCKET_NAME=${SPACES_BUCKET_NAME} \
+                     -e SPACES_REGION=${SPACES_REGION} \
+                     -e SPACES_CDN_DOMAIN=${SPACES_CDN_DOMAIN} \
+                     --name test-app sultan-prints-test
 
       - name: Wait for app to be ready
         run: |
